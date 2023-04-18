@@ -3,6 +3,7 @@ import json
 import websockets
 from SendVelocity import get_velocity
 from EventInfo import getEventInfoObject
+from EventEnums import Events, Devices
 
 
 async def client():
@@ -13,10 +14,12 @@ async def client():
                 message = await websocket.recv()
                 print(message)
                 eventInfo = getEventInfoObject(message)
-                if eventInfo.header.sentTo == "Detector" and eventInfo.header.eventName == "throwBall":
+                if eventInfo.header.sentTo == Devices.DETECTOR.value and eventInfo.header.eventName == Events.THROW_BALL.value:
                     await websocket.send(get_velocity())
-            except ConnectionError and json.decoder.JSONDecodeError:
-                print("error")
+            except ConnectionError:
+                print("Connection Error")
+            except json.decoder.JSONDecodeError:
+                print("Invalid JSON")
 
 
 asyncio.run(client())
