@@ -22,3 +22,7 @@ def customEventInfoDecoder(eventInfoDict):
 
 def getEventInfoObject(eventInfoJson):
     return json.loads(eventInfoJson, object_hook=customEventInfoDecoder)
+
+
+def getEventInfoDict(eventInfoJson):
+    return json.loads(eventInfoJson)

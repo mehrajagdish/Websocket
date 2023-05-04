@@ -28,7 +28,7 @@ async def broadcast(message):
 
 async def broadcast_messages():
     while True:
-        await asyncio.sleep(1)
+        # await asyncio.sleep(1)
         message = await messages.get()
         await broadcast(message)
 
