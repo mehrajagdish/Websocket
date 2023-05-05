@@ -16,6 +16,7 @@ class Devices(enum.Enum):
     DETECTOR = "detector"
     TRIGGER = "trigger"
     UNITY = "unity"
+    RECORDER = "recorder"
 
 
 class GameMode(enum.Enum):
