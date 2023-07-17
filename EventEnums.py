@@ -9,6 +9,8 @@ class Events(enum.Enum):
     PLAYERS_LIST = "playersList"
     CURRENT_BALL_VELOCITY = "currentBallVelocity"
     CURRENT_BALL_INFO = "currentBallInfo"
+    CURRENT_BALL_VIDEO_URL = "currentBallVideoUrl"
+    GAME_ENDED = "gameEnded"
 
 
 class Devices(enum.Enum):

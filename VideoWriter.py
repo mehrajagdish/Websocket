@@ -1,8 +1,7 @@
 import cv2
-import time
 
 
-def get_video_writer(path, dimensions):
+def get_video_writer(full_path, dimensions, fps: int):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(path + "video" + ".avi", fourcc, 20.0, dimensions)
+    out = cv2.VideoWriter(full_path, fourcc, fps, dimensions)
     return out

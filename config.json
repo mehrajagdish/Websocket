@@ -1,4 +1,6 @@
 {
-  "upload-api-base-url": "http://192.168.0.246",
-  "bay-id": "001"
+  "baseUrl": "http://192.168.0.173:8080/api",
+  "bayId": "001",
+  "baseUrlTech": "https://kwan-api.virtueanalytics.com",
+  "virtueBaseUrlTech": "https://tech.virtueanalytics.com/v-api"
 }
