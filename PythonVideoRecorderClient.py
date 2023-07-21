@@ -3,8 +3,9 @@ import json
 import websockets
 from EventInfo import getEventInfoObject, getEventInfoDict
 from EventEnums import Events, Devices
-from RecordVideoAndUploadUtils import uploadVideo, checkIfBetterShot, getAllPlayerVideoIds, recordVideoWithLogo
+from RecordVideoAndUploadUtils import uploadVideo, checkIfBetterShot, getAllPlayerVideoUrls, recordVideoWithLogo
 import os
+
 
 CONFIG_PATH = "./config.json"
 fp = open(CONFIG_PATH)
@@ -51,7 +52,7 @@ async def client():
                         await websocket.send(json.dumps(eventInfoDict))
 
                     elif eventInfo.header.eventName == Events.GAME_ENDED.value:
-                        playerIds = getAllPlayerVideoIds(ALL_PLAYERS_VIDEOS_DIR_PATH)
+                        playerIds = getAllPlayerVideoUrls(ALL_PLAYERS_VIDEOS_DIR_PATH)
                         eventInfoDict["header"]["sentBy"] = Devices.RECORDER.value
                         eventInfoDict["header"]["sentTo"] = [Devices.PLAYER_APP.value]
                         eventInfoDict["data"]["value"] = playerIds

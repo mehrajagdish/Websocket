@@ -6,6 +6,9 @@ import json
 import shutil
 import os
 from pathlib import Path
+from Utils.ShellUtils import getSerialNoOfEconCameraByIndex
+import os
+import numpy as np
 
 CONFIG_PATH = "./config.json"
 fp = open(CONFIG_PATH)
@@ -14,6 +17,7 @@ base_url = config["baseUrl"]
 base_url_tech = config["baseUrlTech"]
 file_upload_url_tech = base_url_tech + "/fileStorage/upload/s3"
 file_download_endpoint = "/fileStorage/download/"
+ECON_CAMERA_CONFIG_PATH = "./CameraParameters/EconCameraConfig.json"
 
 
 class PlayerVideoInfo:
@@ -50,6 +54,14 @@ def recordVideo(videoFolderPath):
 
 
 def recordVideoWithLogo(videoFolderPath, logoPath, videoIndex: int):
+    camera_serial_number = getSerialNoOfEconCameraByIndex(videoIndex)
+    fp = open(ECON_CAMERA_CONFIG_PATH)
+    econ_config = json.load(fp)
+    camera_position = econ_config[str(camera_serial_number)]["position"]
+    print("camera position: " + camera_position)
+    distortion_matrix = np.load(econ_config[str(camera_serial_number)]["dist_mat_path"])
+    intrinsic_matrix = np.load(econ_config[str(camera_serial_number)]["intrinsic_mat_path"])
+
     logo = cv2.imread(logoPath, cv2.IMREAD_UNCHANGED)
     video = cv2.VideoCapture(videoIndex)
     logo_height, logo_width, _ = logo.shape
@@ -67,6 +79,7 @@ def recordVideoWithLogo(videoFolderPath, logoPath, videoIndex: int):
     timeout = time.time() + 11  # 11 seconds from now
     while True:
         success, frame = video.read()
+        frame = cv2.undistort(frame, intrinsic_matrix, distortion_matrix)
 
         if not success:
             break
@@ -105,10 +118,10 @@ def uploadVideo(videoPath, videoName):
                                  files={'file': (videoName, open(videoPath, 'rb'), 'video/x-msvideo')})
         if response.status_code == 200:
             fileId = response.json()["id"]
-            fileUrl = base_url_tech+file_download_endpoint+fileId
+            fileUrl = base_url_tech + file_download_endpoint + fileId
             return str(fileUrl)
         return None
-    except RuntimeError as e:
+    except ArithmeticError as e:
         print(e)
         return None
 

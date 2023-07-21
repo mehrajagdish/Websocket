@@ -1,0 +1,12 @@
+{
+   "171C5001": {
+     "position": "left",
+     "dist_mat_path": "./EconCameraCalibrationFiles/171C5001/distortion_coefficients.npy",
+     "intrinsic_mat_path": "./EconCameraCalibrationFiles/171C5001/intrinsic_matrix.npy"
+   },
+  "212AD009": {
+    "position": "right",
+    "dist_mat_path": "./EconCameraCalibrationFiles/212AD009/distortion_coefficients.npy",
+    "intrinsic_mat_path": "./EconCameraCalibrationFiles/212AD009/intrinsic_matrix.npy"
+  }
+}
