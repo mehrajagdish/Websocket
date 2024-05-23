@@ -1,6 +1,14 @@
 {
-  "baseUrl": "http://192.168.0.173:8080/api",
+  "baseUrl": "http://192.168.0.245:8080/api",
   "bayId": "001",
   "baseUrlTech": "https://kwan-api.virtueanalytics.com",
-  "virtueBaseUrlTech": "https://tech.virtueanalytics.com/v-api"
+  "virtueBaseUrlTech": "https://tech.virtueanalytics.com/v-api",
+  "cameraRTSP": "rtsp://admin:Admin@123@192.168.0.33/Streaming/Channels/101",
+  "logoPath": "./Logo/six2o-logo.png",
+  "currentShotVideoName": "video.avi",
+  "currentVideoDirectory": "CurrentVideo",
+  "allPlayersVideoDirectory": "AllPlayersVideos",
+  "websocketServerURI": "ws://192.168.0.245:3000",
+  "timeIntervalBetweenEvents": 15.0
+
 }

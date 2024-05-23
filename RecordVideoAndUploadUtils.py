@@ -4,7 +4,6 @@ import time
 import requests
 import json
 import shutil
-import os
 from pathlib import Path
 from Utils.ShellUtils import getSerialNoOfEconCameraByIndex
 import os
@@ -111,6 +110,56 @@ def recordVideoWithLogo(videoFolderPath, logoPath, videoIndex: int):
     video_writer.release()
 
 
+def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, logoPath, rtspUrl):
+    logo = cv2.imread(logoPath, cv2.IMREAD_UNCHANGED)
+    video = cv2.VideoCapture(rtspUrl)
+    logo_height, logo_width, _ = logo.shape
+    # Define the position of the logo in the top right corner
+    logo_margin = 10  # Margin from the video edges
+    logo_x = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) - logo_width - logo_margin
+    logo_y = logo_margin
+
+    # Get the video's frames per second (fps) and frame size
+    fps = int(video.get(cv2.CAP_PROP_FPS))
+    frame_size = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    print(frame_size)
+
+    video_writer = get_video_writer(full_path=videoFolderPath, dimensions=frame_size, fps=fps)
+
+    timeout = time.time() + 8  # 8 seconds from now
+    while True:
+        success, frame = video.read()
+
+        if not success:
+            break
+        # Create a copy of the frame
+        frame_with_logo = frame.copy()
+
+        # Get the ROI in the frame for logo placement
+        roi = frame_with_logo[logo_y:logo_y + logo_height, logo_x:logo_x + logo_width]
+
+        # Resize the logo image to match the ROI size
+        resized_logo = cv2.resize(logo, (roi.shape[1], roi.shape[0]))
+
+        # Extract the alpha channel of the logo
+        alpha_channel = resized_logo[:, :, 3] / 255.0
+
+        # Apply the logo on the ROI using alpha blending
+        for c in range(0, 3):
+            roi[:, :, c] = (1 - alpha_channel) * roi[:, :, c] + alpha_channel * resized_logo[:, :, c]
+
+        # Update the frame with the logo
+        frame_with_logo[logo_y:logo_y + logo_height, logo_x:logo_x + logo_width] = roi
+
+        # cv2.imshow("Cam", frame)
+        video_writer.write(frame_with_logo)
+
+        if time.time() > timeout:
+            break
+    video.release()
+    video_writer.release()
+
+
 def uploadVideo(videoPath, videoName):
     parameters = {"payload": '{"bucketName":"VIRTUE_USER_UPLOADS","dirPrefix":"GENERAL_DOCS","purpose":"file upload"}'}
     try:
@@ -121,7 +170,7 @@ def uploadVideo(videoPath, videoName):
             fileUrl = base_url_tech + file_download_endpoint + fileId
             return str(fileUrl)
         return None
-    except ArithmeticError as e:
+    except Exception as e:
         print(e)
         return None
 

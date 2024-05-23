@@ -1,28 +1,46 @@
 import asyncio
 import json
-import websockets
-from EventInfo import getEventInfoObject, getEventInfoDict
-from EventEnums import Events, Devices
-from RecordVideoAndUploadUtils import uploadVideo, checkIfBetterShot, getAllPlayerVideoUrls, recordVideoWithLogo
 import os
+import time
 
+import websockets
+
+import EventEnums
+from EventEnums import Events, Devices
+from EventInfo import EventInfo, Header, Data, BayInfo
+from EventInfo import getEventInfoObject, getEventInfoDict
+from RecordVideoAndUploadUtils import (uploadVideo, checkIfBetterShot, getAllPlayerVideoUrls,
+                                       recordVideoUsingNetworkCameraWithLogo)
 
 CONFIG_PATH = "./config.json"
 fp = open(CONFIG_PATH)
 config = json.load(fp)
 bayId = config["bayId"]
 
-CURRENT_VIDEO_FILE_NAME = "video.avi"
-CURRENT_VIDEO_DIR_PATH = os.path.join(bayId, "CurrentVideo")
+CURRENT_VIDEO_FILE_NAME = config["currentShotVideoName"]
+CURRENT_VIDEO_DIR_PATH = os.path.join(bayId, str(config["currentVideoDirectory"]))
 CURRENT_VIDEO_FULL_PATH = os.path.join(CURRENT_VIDEO_DIR_PATH, CURRENT_VIDEO_FILE_NAME)
-ALL_PLAYERS_VIDEOS_DIR_PATH = os.path.join(bayId, "AllPlayersVideos")
-LOGO_PATH = "./Logo/MicrosoftTeams-image.png"
-VIDEO_INDEX = 0
+ALL_PLAYERS_VIDEOS_DIR_PATH = os.path.join(bayId, str(config["allPlayersVideoDirectory"]))
+LOGO_PATH = config["logoPath"]
+
+RTSP_URL = config["cameraRTSP"]
+WS_URI = config["websocketServerURI"]
+TIME_INTERVAL_BETWEEN_EVENTS = config["timeIntervalBetweenEvents"]
+
+lastEvent = {}
+
+
+async def getVideoRecordedEvent(forBay):
+    bayInfo = BayInfo(isForAllBays=False, bayId=forBay)
+    header = Header(Devices.RECORDER.value, [Devices.UNITY.value], Events.PLAY_VIDEO.value, bayInfo)
+    data = Data({"value": "1"})
+    event = EventInfo(header, data)
+
+    return json.dumps(event, default=vars)
 
 
 async def client():
-    uri = "ws://localhost:3000"
-    async with websockets.connect(uri) as websocket:
+    async with websockets.connect(WS_URI) as websocket:
         while True:
             try:
                 message = await websocket.recv()
@@ -35,8 +53,19 @@ async def client():
 
                 if Devices.RECORDER.value in eventInfo.header.sentTo:
 
+                    if eventInfo.header.eventName in lastEvent:
+                        if time.time() - lastEvent[eventInfo.header.eventName] < TIME_INTERVAL_BETWEEN_EVENTS:
+                            print("Skipping event", eventInfo.header.eventName)
+                            print("Time Difference: ", time.time() - lastEvent[eventInfo.header.eventName])
+                            continue
+
+                    lastEvent[eventInfo.header.eventName] = time.time()
+
                     if eventInfo.header.eventName == Events.THROW_BALL.value:
-                        recordVideoWithLogo(CURRENT_VIDEO_FULL_PATH, LOGO_PATH, VIDEO_INDEX)
+                        recordVideoUsingNetworkCameraWithLogo(CURRENT_VIDEO_FULL_PATH, LOGO_PATH, RTSP_URL)
+                        recordedEventJson = await getVideoRecordedEvent(eventInfo.header.bayInfo.bayId)
+                        await websocket.send(recordedEventJson)
+
                     elif eventInfo.header.eventName == Events.CURRENT_BALL_INFO.value:
                         scoreOnCurrentBall = eventInfo.data.value.score
                         currentPlayerId = eventInfo.data.value.scoredBy.id

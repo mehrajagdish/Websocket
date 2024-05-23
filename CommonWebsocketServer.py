@@ -28,14 +28,13 @@ async def broadcast(message):
 
 async def broadcast_messages():
     while True:
-        # await asyncio.sleep(1)
         message = await messages.get()
         await broadcast(message)
 
 
 async def main():
-    async with websockets.serve(handler, port=3000):
-        await broadcast_messages()  # runs forever
+    server = await websockets.serve(handler, "localhost", 3000)
+    await asyncio.gather(server.wait_closed(), broadcast_messages())
 
 
 if __name__ == "__main__":

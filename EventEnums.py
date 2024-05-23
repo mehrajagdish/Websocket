@@ -11,6 +11,7 @@ class Events(enum.Enum):
     CURRENT_BALL_INFO = "currentBallInfo"
     CURRENT_BALL_VIDEO_URL = "currentBallVideoUrl"
     GAME_ENDED = "gameEnded"
+    PLAY_VIDEO = "playVideo"
 
 
 class Devices(enum.Enum):
