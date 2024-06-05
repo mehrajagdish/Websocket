@@ -12,6 +12,9 @@ class Events(enum.Enum):
     CURRENT_BALL_VIDEO_URL = "currentBallVideoUrl"
     GAME_ENDED = "gameEnded"
     PLAY_VIDEO = "playVideo"
+    BOWLING_MACHINE_STATUS = "bowlingMachineStatus"
+    SET_BOWLING_MACHINE_PARAMETERS = "setBowlingMachineParameters"
+    FEED_BOWLING_MACHINE = "feedBowlingMachine"
 
 
 class Devices(enum.Enum):
@@ -20,6 +23,7 @@ class Devices(enum.Enum):
     TRIGGER = "trigger"
     UNITY = "unity"
     RECORDER = "recorder"
+    BOWLING_MACHINE = "bowlingMachine"
 
 
 class GameMode(enum.Enum):

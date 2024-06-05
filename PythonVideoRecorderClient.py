@@ -5,7 +5,6 @@ import time
 
 import websockets
 
-import EventEnums
 from EventEnums import Events, Devices
 from EventInfo import EventInfo, Header, Data, BayInfo
 from EventInfo import getEventInfoObject, getEventInfoDict
@@ -26,6 +25,7 @@ LOGO_PATH = config["logoPath"]
 RTSP_URL = config["cameraRTSP"]
 WS_URI = config["websocketServerURI"]
 TIME_INTERVAL_BETWEEN_EVENTS = config["timeIntervalBetweenEvents"]
+VIDEO_LENGTH = config["videoLength"]
 
 lastEvent = {}
 
@@ -62,7 +62,7 @@ async def client():
                     lastEvent[eventInfo.header.eventName] = time.time()
 
                     if eventInfo.header.eventName == Events.THROW_BALL.value:
-                        recordVideoUsingNetworkCameraWithLogo(CURRENT_VIDEO_FULL_PATH, LOGO_PATH, RTSP_URL)
+                        recordVideoUsingNetworkCameraWithLogo(CURRENT_VIDEO_FULL_PATH, LOGO_PATH, RTSP_URL, VIDEO_LENGTH)
                         recordedEventJson = await getVideoRecordedEvent(eventInfo.header.bayInfo.bayId)
                         await websocket.send(recordedEventJson)
 

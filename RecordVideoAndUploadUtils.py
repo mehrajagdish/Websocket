@@ -110,7 +110,7 @@ def recordVideoWithLogo(videoFolderPath, logoPath, videoIndex: int):
     video_writer.release()
 
 
-def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, logoPath, rtspUrl):
+def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, logoPath, rtspUrl, videoLength):
     logo = cv2.imread(logoPath, cv2.IMREAD_UNCHANGED)
     video = cv2.VideoCapture(rtspUrl)
     logo_height, logo_width, _ = logo.shape
@@ -126,7 +126,7 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, logoPath, rtspUrl):
 
     video_writer = get_video_writer(full_path=videoFolderPath, dimensions=frame_size, fps=fps)
 
-    timeout = time.time() + 8  # 8 seconds from now
+    timeout = time.time() + videoLength
     while True:
         success, frame = video.read()
 

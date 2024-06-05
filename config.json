@@ -9,6 +9,7 @@
   "currentVideoDirectory": "CurrentVideo",
   "allPlayersVideoDirectory": "AllPlayersVideos",
   "websocketServerURI": "ws://192.168.0.245:3000",
-  "timeIntervalBetweenEvents": 15.0
-
+  "timeIntervalBetweenEvents": 15.0,
+  "videoLength": 8,
+  "machineApiKey": 5196
 }
