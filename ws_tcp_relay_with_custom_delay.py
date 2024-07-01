@@ -2,12 +2,13 @@ import asyncio
 import json
 import socket
 import threading
+import time
 
 import websockets
 
-from BowlingMachine import BowlingMachineResponse  # Assuming these imports are valid
-from EventEnums import Events, Devices  # Assuming these imports are valid
-from EventInfo import getEventInfoObject  # Assuming these imports are valid
+from BowlingMachine import BowlingMachineResponse
+from EventEnums import Events, Devices
+from EventInfo import getEventInfoObject
 
 CONFIG_PATH = "./config.json"
 fp = open(CONFIG_PATH)
@@ -18,20 +19,36 @@ TRIGGER_DELAY = config["triggerDelay"]
 
 tcp_socket = None
 
+last_trigger_time = time.time()
 
-def triggerReceived(message):
+
+def triggerReceived(messageFromTCP):
+    message = json.loads(messageFromTCP)
+    if message["response"] == BowlingMachineResponse.BALLTRIGGERED.value:
+        return True
     return False
 
 
+def send_feed_command_to_tcp(tcp_socket):
+    message = f"[F/{API_KEY}/3/]?"
+    send_message_to_tcp(tcp_socket, message)
+
+
 def tcp_client_receive(tcp_socket, websocket):
+    global last_trigger_time
     try:
         while True:
             message = tcp_socket.recv(1024).decode('utf-8')
+            print("TCP: Message received: " + message)
             if not message:
                 print("TCP connection closed by server.")
                 break
-            if triggerReceived(message) and
-            asyncio.run(send_message_to_websocket(websocket, message))
+            if triggerReceived(message) and time.time() - last_trigger_time >= TRIGGER_DELAY:
+                send_feed_command_to_tcp(tcp_socket)
+                asyncio.run(send_message_to_websocket(websocket, message))
+                last_trigger_time = time.time()
+            else:
+                print("Skipping event, time difference: ", time.time() - last_trigger_time)
     except Exception as e:
         print(f"TCP client receive error: {e}")
     finally:
@@ -83,7 +100,9 @@ async def websocket_client_receive(websocket):
     try:
         async for message in websocket:
             print(f"Received from WebSocket server: {message}")
-            send_message_to_tcp(tcp_socket, message)
+            messageToBeSent = getMessageToBeSentToTCP(message)
+            if messageToBeSent is not None:
+                send_message_to_tcp(tcp_socket, messageToBeSent)
     except Exception as e:
         print(f"WebSocket client receive error: {e}")
     finally:

@@ -8,8 +8,9 @@
   "currentShotVideoName": "video.avi",
   "currentVideoDirectory": "CurrentVideo",
   "allPlayersVideoDirectory": "AllPlayersVideos",
-  "websocketServerURI": "ws://192.168.0.245:3000",
+  "websocketServerURI": "ws://localhost:3000",
   "timeIntervalBetweenEvents": 15.0,
   "videoLength": 8,
-  "machineApiKey": 5196
+  "machineApiKey": 5196,
+  "triggerDelay": 10
 }

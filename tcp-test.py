@@ -1,3 +1,4 @@
+import json
 import socket
 
 
@@ -8,9 +9,14 @@ def tcp_client(host, port):
 
     client_socket.connect(server_address)
 
-    message = "Hi"
+    message = {
+        "ID": "1234",
+        "response": "BALLTRIGGERED"
+    }
+
+    message = json.dumps(message)
 
     client_socket.send(message.encode('utf-8'))
 
 
-tcp_client('192.168.4.1', 8384)
+tcp_client('localhost', 6789)
