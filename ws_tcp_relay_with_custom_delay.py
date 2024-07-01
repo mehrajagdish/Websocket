@@ -16,6 +16,11 @@ config = json.load(fp)
 bayId = config["bayId"]
 API_KEY = config["machineApiKey"]
 TRIGGER_DELAY = config["triggerDelay"]
+WS_URL = config["websocketServerURI"]
+
+TCP_IP = config["tcpIP"]
+TCP_PORT = config["tcpPort"]
+
 
 tcp_socket = None
 
@@ -84,7 +89,7 @@ def start_tcp_client(websocket):
     global tcp_socket
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        tcp_socket.connect(('localhost', 6789))
+        tcp_socket.connect((TCP_IP, TCP_PORT))
         print("Successfully connected to TCP server.")
         threading.Thread(target=tcp_client_receive, args=(tcp_socket, websocket)).start()
         return tcp_socket
@@ -181,7 +186,7 @@ def getMessageToBeSentToWebsocket(messageFromTCP):
 async def start_websocket_client():
     while True:
         try:
-            async with websockets.connect('ws://localhost:3000') as websocket:
+            async with websockets.connect(WS_URL) as websocket:
                 print("Successfully connected to WebSocket server.")
                 tcp_socket = start_tcp_client(websocket)
                 if tcp_socket:

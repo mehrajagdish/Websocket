@@ -12,5 +12,7 @@
   "timeIntervalBetweenEvents": 15.0,
   "videoLength": 8,
   "machineApiKey": 5196,
-  "triggerDelay": 10
+  "triggerDelay": 10,
+  "tcpIP": "localhost",
+  "tcpPort" : 6789
 }
