@@ -50,7 +50,12 @@ def tcp_client_receive(tcp_socket, websocket):
     try:
         while True:
             message = tcp_socket.recv(1024).decode('utf-8')
-            print("TCP: Message received: " + message)
+
+            message = message.strip('"')
+            if len(message.strip()) == 0:
+                print("TCP: Empty message")
+                continue
+
             if not message:
                 print("TCP connection closed by server.")
                 break
