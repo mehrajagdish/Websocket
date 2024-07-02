@@ -21,7 +21,6 @@ WS_URL = config["websocketServerURI"]
 TCP_IP = config["tcpIP"]
 TCP_PORT = config["tcpPort"]
 
-
 tcp_socket = None
 
 last_trigger_time = time.time()
@@ -45,7 +44,7 @@ def tcp_client_receive(tcp_socket, websocket):
         while True:
             message = tcp_socket.recv(1024).decode('utf-8')
             print("TCP: Message received: " + message)
-            if not message:
+            if not message or message == "":
                 print("TCP connection closed by server.")
                 break
             if triggerReceived(message) and time.time() - last_trigger_time >= TRIGGER_DELAY:
@@ -67,7 +66,7 @@ async def handle_tcp_disconnection(websocket):
     while True:
         try:
             tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            tcp_socket.connect(('localhost', 6789))
+            tcp_socket.connect((TCP_IP, TCP_PORT))
             print("Successfully reconnected to TCP server.")
             threading.Thread(target=tcp_client_receive, args=(tcp_socket, websocket)).start()
             return
@@ -80,6 +79,7 @@ async def handle_tcp_disconnection(websocket):
 def send_message_to_tcp(tcp_socket, message):
     if tcp_socket:
         try:
+            print("Sending message to TCP server :" + message)
             tcp_socket.send(message.encode('utf-8'))
         except Exception as e:
             print(f"Error sending message to TCP server: {e}")
