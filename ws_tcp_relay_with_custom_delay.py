@@ -62,6 +62,7 @@ def tcp_client_receive(tcp_socket, websocket):
 
             if triggerReceived(message):
                 if time.time() - last_trigger_time >= TRIGGER_DELAY:
+                    time.sleep(0.25)
                     send_feed_command_to_tcp(tcp_socket)
                     messageToBeSent = getMessageToBeSentToWebsocket(message)
                     if messageToBeSent:
