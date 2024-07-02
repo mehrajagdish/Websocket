@@ -27,9 +27,16 @@ last_trigger_time = time.time()
 
 
 def triggerReceived(messageFromTCP):
-    message = json.loads(messageFromTCP)
-    if message["response"] == BowlingMachineResponse.BALLTRIGGERED.value:
-        return True
+    print("Checking if trigger received")
+    try:
+        message = json.loads(messageFromTCP)
+        if message["response"] == BowlingMachineResponse.BALLTRIGGERED.value:
+            print("Trigger Received")
+            return True
+        print("Trigger Not Received")
+    except Exception as e:
+        print(e)
+
     return False
 
 
@@ -47,6 +54,7 @@ def tcp_client_receive(tcp_socket, websocket):
             if not message:
                 print("TCP connection closed by server.")
                 break
+
             if triggerReceived(message):
                 if time.time() - last_trigger_time >= TRIGGER_DELAY:
                     send_feed_command_to_tcp(tcp_socket)
@@ -56,6 +64,12 @@ def tcp_client_receive(tcp_socket, websocket):
                     last_trigger_time = time.time()
                 else:
                     print("Skipping event, time difference: ", time.time() - last_trigger_time)
+
+            else:
+                messageToBeSent = getMessageToBeSentToWebsocket(message)
+                if messageToBeSent:
+                    asyncio.run(send_message_to_websocket(websocket, messageToBeSent))
+
     except Exception as e:
         print(f"TCP client receive error: {e}")
     finally:
