@@ -44,15 +44,18 @@ def tcp_client_receive(tcp_socket, websocket):
         while True:
             message = tcp_socket.recv(1024).decode('utf-8')
             print("TCP: Message received: " + message)
-            if not message or message == "":
+            if not message:
                 print("TCP connection closed by server.")
                 break
-            if triggerReceived(message) and time.time() - last_trigger_time >= TRIGGER_DELAY:
-                send_feed_command_to_tcp(tcp_socket)
-                asyncio.run(send_message_to_websocket(websocket, message))
-                last_trigger_time = time.time()
-            else:
-                print("Skipping event, time difference: ", time.time() - last_trigger_time)
+            if triggerReceived(message):
+                if time.time() - last_trigger_time >= TRIGGER_DELAY:
+                    send_feed_command_to_tcp(tcp_socket)
+                    messageToBeSent = getMessageToBeSentToWebsocket(message)
+                    if messageToBeSent:
+                        asyncio.run(send_message_to_websocket(websocket, messageToBeSent))
+                    last_trigger_time = time.time()
+                else:
+                    print("Skipping event, time difference: ", time.time() - last_trigger_time)
     except Exception as e:
         print(f"TCP client receive error: {e}")
     finally:
