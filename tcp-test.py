@@ -9,10 +9,7 @@ def tcp_client(host, port):
 
     client_socket.connect(server_address)
 
-    message = {
-        "ID": "1234",
-        "response": "BALLTRIGGERED"
-    }
+    message = ""
 
     message = json.dumps(message)
 
