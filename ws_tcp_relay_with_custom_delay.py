@@ -51,14 +51,14 @@ def tcp_client_receive(tcp_socket, websocket):
         while True:
             message = tcp_socket.recv(1024).decode('utf-8')
 
+            if not message:
+                print("TCP connection closed by server.")
+                break
+
             message = message.strip('"')
             if len(message.strip()) == 0:
                 print("TCP: Empty message")
                 continue
-
-            if not message:
-                print("TCP connection closed by server.")
-                break
 
             if triggerReceived(message):
                 if time.time() - last_trigger_time >= TRIGGER_DELAY:
