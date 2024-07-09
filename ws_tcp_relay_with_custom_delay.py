@@ -68,7 +68,7 @@ def tcp_client_receive(tcp_socket, websocket):
                     send_feed_command_to_tcp(tcp_socket)
                     messageToBeSent = getMessageToBeSentToWebsocket(message)
                     if messageToBeSent:
-                        asyncio.run(send_message_to_websocket(websocket, messageToBeSent))
+                        asyncio.create_task(send_message_to_websocket(websocket, messageToBeSent))
                     last_trigger_time = time.time()
                 else:
                     print("Skipping event, time difference: ", time.time() - last_trigger_time)
@@ -76,13 +76,13 @@ def tcp_client_receive(tcp_socket, websocket):
             else:
                 messageToBeSent = getMessageToBeSentToWebsocket(message)
                 if messageToBeSent:
-                    asyncio.run(send_message_to_websocket(websocket, messageToBeSent))
+                    asyncio.create_task(send_message_to_websocket(websocket, messageToBeSent))
 
     except Exception as e:
         print(f"TCP client receive error: {e}")
     finally:
         tcp_socket.close()
-        asyncio.run(handle_tcp_disconnection(websocket))
+        asyncio.create_task(handle_tcp_disconnection(websocket))
 
 
 async def handle_tcp_disconnection(websocket):
@@ -125,7 +125,7 @@ def start_tcp_client(websocket):
     except Exception as e:
         print(f"Error connecting to TCP server: {e}")
         tcp_socket.close()
-        asyncio.run(handle_tcp_disconnection(websocket))
+        asyncio.create_task(handle_tcp_disconnection(websocket))
         return None
 
 
