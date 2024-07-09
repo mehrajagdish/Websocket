@@ -45,12 +45,13 @@ def send_feed_command_to_tcp(tcp_socket: socket.socket):
     send_message_to_tcp(tcp_socket, message)
 
 
-def tcp_client_receive(tcp_socket: socket.socket, websocket: websockets.WebSocketClientProtocol, loop: AbstractEventLoop):
+def tcp_client_receive(tcp_socket: socket.socket, websocket: websockets.WebSocketClientProtocol,
+                       loop: AbstractEventLoop):
     global last_trigger_time
     try:
         while True:
             message = tcp_socket.recv(1024).decode('utf-8')
-
+            print("TCP Client Received: ", message)
             if not message:
                 print("TCP connection closed by server.")
                 break
