@@ -21,6 +21,8 @@ WS_URL = config["websocketServerURI"]
 TCP_IP = config["tcpIP"]
 TCP_PORT = config["tcpPort"]
 
+TIMEOUT = 3.0
+
 tcp_socket = None
 
 last_trigger_time = time.time()
@@ -89,7 +91,9 @@ async def handle_tcp_disconnection(websocket):
     while True:
         try:
             tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            tcp_socket.settimeout(TIMEOUT)
             tcp_socket.connect((TCP_IP, TCP_PORT))
+            tcp_socket.settimeout(None)
             print("Successfully reconnected to TCP server.")
             threading.Thread(target=tcp_client_receive, args=(tcp_socket, websocket)).start()
             return
@@ -111,8 +115,10 @@ def send_message_to_tcp(tcp_socket, message):
 def start_tcp_client(websocket):
     global tcp_socket
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_socket.settimeout(TIMEOUT)
     try:
         tcp_socket.connect((TCP_IP, TCP_PORT))
+        tcp_socket.settimeout(None)
         print("Successfully connected to TCP server.")
         threading.Thread(target=tcp_client_receive, args=(tcp_socket, websocket)).start()
         return tcp_socket
@@ -218,7 +224,7 @@ async def start_websocket_client():
                     await handle_tcp_disconnection(websocket)
         except Exception as e:
             print(f"Error connecting to WebSocket server: {e}")
-        await asyncio.sleep(3)
+        await asyncio.sleep(TIMEOUT)
 
 
 def main():
