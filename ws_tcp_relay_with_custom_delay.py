@@ -50,40 +50,47 @@ def tcp_client_receive(tcp_socket: socket.socket, websocket: websockets.WebSocke
     global last_trigger_time
     try:
         while True:
-            message = tcp_socket.recv(1024).decode('utf-8')
-            print("TCP Client Received: ", message)
-            if not message:
-                print("TCP connection closed by server.")
-                break
+            try:
+                message = tcp_socket.recv(1024).decode('utf-8')
+                print("TCP Client Received: ", message)
+                if not message:
+                    print("TCP connection closed by server.")
+                    break
 
-            message = message.strip('"')
-            if len(message.strip()) == 0:
-                print("TCP: Empty message")
-                continue
+                message = message.strip('"')
+                if len(message.strip()) == 0:
+                    print("TCP: Empty message")
+                    continue
 
-            if trigger_received(message):
-                if time.time() - last_trigger_time >= TRIGGER_DELAY:
-                    time.sleep(0.25)
-                    send_feed_command_to_tcp(tcp_socket)
+                if trigger_received(message):
+                    if time.time() - last_trigger_time >= TRIGGER_DELAY:
+                        time.sleep(0.25)
+                        send_feed_command_to_tcp(tcp_socket)
+                        message_to_be_sent = get_message_to_be_sent_to_websocket(message)
+                        if message_to_be_sent:
+                            asyncio.run_coroutine_threadsafe(
+                                send_message_to_websocket(websocket, message_to_be_sent), loop
+                            )
+                        last_trigger_time = time.time()
+                    else:
+                        print("Skipping event, time difference: ", time.time() - last_trigger_time)
+                else:
                     message_to_be_sent = get_message_to_be_sent_to_websocket(message)
                     if message_to_be_sent:
                         asyncio.run_coroutine_threadsafe(
                             send_message_to_websocket(websocket, message_to_be_sent), loop
                         )
-                    last_trigger_time = time.time()
-                else:
-                    print("Skipping event, time difference: ", time.time() - last_trigger_time)
-            else:
-                message_to_be_sent = get_message_to_be_sent_to_websocket(message)
-                if message_to_be_sent:
-                    asyncio.run_coroutine_threadsafe(
-                        send_message_to_websocket(websocket, message_to_be_sent), loop
-                    )
+            except socket.timeout:
+                print("TCP socket timeout")
+            except socket.error as e:
+                print(f"TCP socket error: {e}")
+                break
 
     except Exception as e:
         print(f"TCP client receive error: {e}")
     finally:
-        tcp_socket.close()
+        if tcp_socket:
+            tcp_socket.close()
         asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), loop)
 
 
@@ -102,7 +109,8 @@ async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol
             return
         except Exception as e:
             print(f"Reconnection attempt failed: {e}")
-            tcp_socket.close()
+            if tcp_socket:
+                tcp_socket.close()
         await asyncio.sleep(3)
 
 
