@@ -23,7 +23,7 @@ TCP_IP = config["tcpIP"]
 TCP_PORT = config["tcpPort"]
 TIMEOUT = 3.0
 
-tcp_socket = None
+tcp_socket: socket.socket | None = None
 last_trigger_time = time.time()
 
 
@@ -40,14 +40,14 @@ def trigger_received(message_from_tcp: str) -> bool:
     return False
 
 
-def send_feed_command_to_tcp(tcp_socket: socket.socket):
+def send_feed_command_to_tcp():
     message = f"[F/{API_KEY}/3/]?"
-    send_message_to_tcp(tcp_socket, message)
+    send_message_to_tcp(message)
 
 
-def tcp_client_receive(tcp_socket: socket.socket, websocket: websockets.WebSocketClientProtocol,
+def tcp_client_receive(websocket: websockets.WebSocketClientProtocol,
                        loop: AbstractEventLoop):
-    global last_trigger_time
+    global last_trigger_time, tcp_socket
     try:
         while True:
             try:
@@ -65,7 +65,7 @@ def tcp_client_receive(tcp_socket: socket.socket, websocket: websockets.WebSocke
                 if trigger_received(message):
                     if time.time() - last_trigger_time >= TRIGGER_DELAY:
                         time.sleep(0.25)
-                        send_feed_command_to_tcp(tcp_socket)
+                        send_feed_command_to_tcp()
                         message_to_be_sent = get_message_to_be_sent_to_websocket(message)
                         if message_to_be_sent:
                             asyncio.run_coroutine_threadsafe(
@@ -102,9 +102,10 @@ async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol
             tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             tcp_socket.settimeout(TIMEOUT)
             tcp_socket.connect((TCP_IP, TCP_PORT))
+            tcp_socket.settimeout(None)
             print("Successfully reconnected to TCP server.")
             loop = asyncio.get_running_loop()
-            threading.Thread(target=tcp_client_receive, args=(tcp_socket, websocket, loop)).start()
+            threading.Thread(target=tcp_client_receive, args=(websocket, loop)).start()
             return
         except Exception as e:
             print(f"Reconnection attempt failed: {e}")
@@ -113,7 +114,8 @@ async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol
         await asyncio.sleep(3)
 
 
-def send_message_to_tcp(tcp_socket: socket.socket, message: str):
+def send_message_to_tcp(message: str):
+    global tcp_socket
     if tcp_socket:
         try:
             print("Sending message to TCP server :" + message)
@@ -122,15 +124,16 @@ def send_message_to_tcp(tcp_socket: socket.socket, message: str):
             print(f"Error sending message to TCP server: {e}")
 
 
-def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.socket:
+def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.socket | None:
     global tcp_socket
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.settimeout(TIMEOUT)
     try:
         tcp_socket.connect((TCP_IP, TCP_PORT))
+        tcp_socket.settimeout(None)
         print("Successfully connected to TCP server.")
         loop = asyncio.get_running_loop()
-        threading.Thread(target=tcp_client_receive, args=(tcp_socket, websocket, loop)).start()
+        threading.Thread(target=tcp_client_receive, args=(websocket, loop)).start()
         return tcp_socket
     except Exception as e:
         print(f"Error connecting to TCP server: {e}")
@@ -146,7 +149,7 @@ async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol
             print(f"Received from WebSocket server: {message}")
             message_to_be_sent = get_message_to_be_sent_to_tcp(message)
             if message_to_be_sent is not None:
-                send_message_to_tcp(tcp_socket, message_to_be_sent)
+                send_message_to_tcp(message_to_be_sent)
     except Exception as e:
         print(f"WebSocket client receive error: {e}")
     finally:
@@ -160,7 +163,7 @@ async def send_message_to_websocket(websocket: websockets.WebSocketClientProtoco
         print(f"Error sending message to WebSocket server: {e}")
 
 
-def get_message_to_be_sent_to_tcp(message_from_websocket: str) -> str:
+def get_message_to_be_sent_to_tcp(message_from_websocket: str) -> str | None:
     eventInfo = getEventInfoObject(message_from_websocket)
 
     if not eventInfo.header.bayInfo.isForAllBays and eventInfo.header.bayInfo.bayId != bayId:
@@ -177,7 +180,7 @@ def get_message_to_be_sent_to_tcp(message_from_websocket: str) -> str:
     return None
 
 
-def get_message_to_be_sent_to_websocket(message_from_tcp: str) -> dict:
+def get_message_to_be_sent_to_websocket(message_from_tcp: str) -> dict | None:
     message = json.loads(message_from_tcp)
     if message["response"] == BowlingMachineResponse.BALLTRIGGERED.value:
         return {
@@ -221,6 +224,7 @@ def get_message_to_be_sent_to_websocket(message_from_tcp: str) -> dict:
 
 
 async def start_websocket_client():
+    global tcp_socket
     while True:
         try:
             async with websockets.connect(WS_URL) as websocket:
