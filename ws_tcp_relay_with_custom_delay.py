@@ -102,7 +102,6 @@ async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol
             tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             tcp_socket.settimeout(TIMEOUT)
             tcp_socket.connect((TCP_IP, TCP_PORT))
-            tcp_socket.settimeout(None)
             print("Successfully reconnected to TCP server.")
             loop = asyncio.get_running_loop()
             threading.Thread(target=tcp_client_receive, args=(tcp_socket, websocket, loop)).start()
@@ -129,7 +128,6 @@ def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.so
     tcp_socket.settimeout(TIMEOUT)
     try:
         tcp_socket.connect((TCP_IP, TCP_PORT))
-        tcp_socket.settimeout(None)
         print("Successfully connected to TCP server.")
         loop = asyncio.get_running_loop()
         threading.Thread(target=tcp_client_receive, args=(tcp_socket, websocket, loop)).start()
