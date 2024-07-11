@@ -100,6 +100,7 @@ async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol
     while True:
         try:
             tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             tcp_socket.settimeout(TIMEOUT)
             tcp_socket.connect((TCP_IP, TCP_PORT))
             tcp_socket.settimeout(None)
@@ -127,6 +128,7 @@ def send_message_to_tcp(message: str):
 def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.socket | None:
     global tcp_socket
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
     tcp_socket.settimeout(TIMEOUT)
     try:
         tcp_socket.connect((TCP_IP, TCP_PORT))
