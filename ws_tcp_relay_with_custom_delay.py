@@ -84,7 +84,7 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol,
             except socket.timeout:
                 print("TCP socket timeout")
                 if not ping_tcp_client():
-                    asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), asyncio.get_running_loop())
+                    asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), loop)
             except socket.error as e:
                 print(f"TCP socket error: {e}")
                 break
