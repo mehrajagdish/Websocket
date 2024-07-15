@@ -26,6 +26,7 @@ TIMEOUT = 10.0
 tcp_socket: socket.socket | None = None
 ping_tcp_socket: socket.socket | None = None
 last_trigger_time = time.time()
+trying_to_reconnect = False
 
 
 def trigger_received(message_from_tcp: str) -> bool:
@@ -83,7 +84,7 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol,
                         )
             except socket.timeout:
                 print("TCP socket timeout")
-                if not ping_tcp_client():
+                if not ping_tcp_client() and not trying_to_reconnect:
                     asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), loop)
             except socket.error as e:
                 print(f"TCP socket error: {e}")
@@ -99,7 +100,10 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol,
 
 async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol):
     print("Attempting to reconnect to TCP server...")
+    global trying_to_reconnect
     global tcp_socket
+
+    is_trying_to_reconnect = True
     while True:
         try:
             tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -108,6 +112,7 @@ async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol
             tcp_socket.connect((TCP_IP, TCP_PORT))
             # tcp_socket.settimeout(None)
             print("Successfully reconnected to TCP server.")
+            trying_to_reconnect = False
             loop = asyncio.get_running_loop()
             threading.Thread(target=tcp_client_receive, args=(websocket, loop)).start()
             return
@@ -167,7 +172,6 @@ async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol
         async for message in websocket:
             print(f"Received from WebSocket server: {message}")
             message_to_be_sent = get_message_to_be_sent_to_tcp(message)
-            # message_to_be_sent = 'Hi from a happy tcp client!'
             if message_to_be_sent is not None:
                 send_message_to_tcp(message_to_be_sent)
     except Exception as e:
