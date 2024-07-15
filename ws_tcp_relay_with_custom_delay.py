@@ -264,12 +264,12 @@ async def start_websocket_client():
         try:
             async with websockets.connect(WS_URL) as websocket:
                 print("Successfully connected to WebSocket server.")
+                is_ws_connected = True
                 tcp_socket = start_tcp_client(websocket)
                 if tcp_socket:
                     await websocket_client_receive(websocket)
                 else:
                     await handle_tcp_disconnection(websocket)
-                is_ws_connected = True
         except Exception as e:
             print(f"Error connecting to WebSocket server: {e}")
             is_ws_connected = False
