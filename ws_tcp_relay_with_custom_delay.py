@@ -134,6 +134,10 @@ def send_message_to_tcp(message: str):
 
 def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.socket | None:
     global tcp_socket
+
+    if tcp_socket:
+        return
+
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
     tcp_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
