@@ -21,9 +21,10 @@ TRIGGER_DELAY = config["triggerDelay"]
 WS_URL = config["websocketServerURI"]
 TCP_IP = config["tcpIP"]
 TCP_PORT = config["tcpPort"]
-TIMEOUT = 3.0
+TIMEOUT = 10.0
 
 tcp_socket: socket.socket | None = None
+ping_tcp_socket: socket.socket | None = None
 last_trigger_time = time.time()
 
 
@@ -82,6 +83,8 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol,
                         )
             except socket.timeout:
                 print("TCP socket timeout")
+                if not ping_tcp_client():
+                    asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), asyncio.get_running_loop())
             except socket.error as e:
                 print(f"TCP socket error: {e}")
                 break
@@ -103,7 +106,7 @@ async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol
             tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             tcp_socket.settimeout(TIMEOUT)
             tcp_socket.connect((TCP_IP, TCP_PORT))
-            tcp_socket.settimeout(None)
+            # tcp_socket.settimeout(None)
             print("Successfully reconnected to TCP server.")
             loop = asyncio.get_running_loop()
             threading.Thread(target=tcp_client_receive, args=(websocket, loop)).start()
@@ -120,7 +123,7 @@ def send_message_to_tcp(message: str):
     if tcp_socket:
         try:
             print("Sending message to TCP server :" + message)
-            tcp_socket.send(message.encode('utf-8'))
+            tcp_socket.sendall(message.encode('utf-8'))
         except Exception as e:
             print(f"Error sending message to TCP server: {e}")
 
@@ -129,10 +132,11 @@ def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.so
     global tcp_socket
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    tcp_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     tcp_socket.settimeout(TIMEOUT)
     try:
         tcp_socket.connect((TCP_IP, TCP_PORT))
-        tcp_socket.settimeout(None)
+        # tcp_socket.settimeout(None)
         print("Successfully connected to TCP server.")
         loop = asyncio.get_running_loop()
         threading.Thread(target=tcp_client_receive, args=(websocket, loop)).start()
@@ -144,12 +148,26 @@ def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.so
         return None
 
 
+def ping_tcp_client() -> bool:
+    global ping_tcp_socket
+    try:
+        # Create a socket
+        ping_tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ping_tcp_socket.settimeout(5)
+        ping_tcp_socket.connect((TCP_IP, TCP_PORT))
+        ping_tcp_socket.close()
+        return True
+    except socket.error as e:
+        return False
+
+
 async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol):
     global tcp_socket
     try:
         async for message in websocket:
             print(f"Received from WebSocket server: {message}")
             message_to_be_sent = get_message_to_be_sent_to_tcp(message)
+            # message_to_be_sent = 'Hi from a happy tcp client!'
             if message_to_be_sent is not None:
                 send_message_to_tcp(message_to_be_sent)
     except Exception as e:
