@@ -47,8 +47,7 @@ def send_feed_command_to_tcp():
     send_message_to_tcp(message)
 
 
-def tcp_client_receive(websocket: websockets.WebSocketClientProtocol,
-                       loop: AbstractEventLoop):
+def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: AbstractEventLoop):
     global last_trigger_time, tcp_socket
     try:
         while True:
@@ -103,7 +102,7 @@ async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol
     global trying_to_reconnect
     global tcp_socket
 
-    is_trying_to_reconnect = True
+    trying_to_reconnect = True
     while True:
         try:
             tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
