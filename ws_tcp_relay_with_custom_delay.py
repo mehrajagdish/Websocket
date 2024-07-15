@@ -84,6 +84,11 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
                         )
             except socket.timeout:
                 print("TCP socket timeout")
+
+                if not is_ws_connected:
+                    print("Websocket connection closed")
+                    break
+
                 if not ping_tcp_client() and not trying_to_reconnect:
                     asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), loop)
             except socket.error as e:
@@ -153,7 +158,6 @@ def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.so
     except Exception as e:
         print(f"Error connecting to TCP server: {e}")
         tcp_socket.close()
-        asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), asyncio.get_running_loop())
         return None
 
 
