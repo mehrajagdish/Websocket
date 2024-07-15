@@ -27,6 +27,7 @@ tcp_socket: socket.socket | None = None
 ping_tcp_socket: socket.socket | None = None
 last_trigger_time = time.time()
 trying_to_reconnect = False
+is_ws_connected = False
 
 
 def trigger_received(message_from_tcp: str) -> bool:
@@ -94,13 +95,13 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
     finally:
         if tcp_socket:
             tcp_socket.close()
-        asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), loop)
+        if is_ws_connected and not trying_to_reconnect:
+            asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), loop)
 
 
 async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol):
     print("Attempting to reconnect to TCP server...")
-    global trying_to_reconnect
-    global tcp_socket
+    global trying_to_reconnect, tcp_socket
 
     trying_to_reconnect = True
     while True:
@@ -170,7 +171,7 @@ def ping_tcp_client() -> bool:
 
 
 async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol):
-    global tcp_socket
+    global tcp_socket, is_ws_connected
     try:
         async for message in websocket:
             print(f"Received from WebSocket server: {message}")
@@ -181,6 +182,8 @@ async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol
         print(f"WebSocket client receive error: {e}")
     finally:
         await websocket.close()
+        is_ws_connected = False
+
 
 
 async def send_message_to_websocket(websocket: websockets.WebSocketClientProtocol, message: dict):
@@ -252,6 +255,7 @@ def get_message_to_be_sent_to_websocket(message_from_tcp: str) -> dict | None:
 
 async def start_websocket_client():
     global tcp_socket
+    global is_ws_connected
     while True:
         try:
             async with websockets.connect(WS_URL) as websocket:
@@ -261,8 +265,10 @@ async def start_websocket_client():
                     await websocket_client_receive(websocket)
                 else:
                     await handle_tcp_disconnection(websocket)
+                is_ws_connected = True
         except Exception as e:
             print(f"Error connecting to WebSocket server: {e}")
+            is_ws_connected = False
         await asyncio.sleep(TIMEOUT)
 
 
