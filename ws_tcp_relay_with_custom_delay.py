@@ -86,7 +86,7 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
                 print("TCP socket timeout")
 
                 if not is_ws_connected:
-                    print("Websocket connection closed")
+                    print("TCP Receive: Websocket connection closed")
                     break
 
                 if not ping_tcp_client() and not trying_to_reconnect:
@@ -142,7 +142,7 @@ def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.so
     global tcp_socket
 
     if tcp_socket:
-        return
+        return tcp_socket
 
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -258,8 +258,7 @@ def get_message_to_be_sent_to_websocket(message_from_tcp: str) -> dict | None:
 
 
 async def start_websocket_client():
-    global tcp_socket
-    global is_ws_connected
+    global tcp_socket, is_ws_connected
     while True:
         try:
             async with websockets.connect(WS_URL) as websocket:
