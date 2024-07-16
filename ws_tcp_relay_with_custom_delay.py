@@ -100,6 +100,7 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
     finally:
         if tcp_socket:
             tcp_socket.close()
+            tcp_socket = None
         if is_ws_connected and not trying_to_reconnect:
             asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), loop)
 
@@ -125,6 +126,7 @@ async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol
             print(f"Reconnection attempt failed: {e}")
             if tcp_socket:
                 tcp_socket.close()
+                tcp_socket = None
         await asyncio.sleep(3)
 
 
@@ -158,6 +160,7 @@ def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.so
     except Exception as e:
         print(f"Error connecting to TCP server: {e}")
         tcp_socket.close()
+        tcp_socket = None
         return None
 
 
