@@ -50,6 +50,10 @@ def recordVideo(videoFolderPath):
 
 
 def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, logoPath, rtspUrl, videoLength):
+    # Ensure the video folder exists
+    if not os.path.exists(os.path.dirname(videoFolderPath)):
+        os.makedirs(os.path.dirname(videoFolderPath))
+
     logo = cv2.imread(logoPath, cv2.IMREAD_UNCHANGED)
     video = cv2.VideoCapture(rtspUrl)
     logo_height, logo_width, _ = logo.shape
