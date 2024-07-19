@@ -5,14 +5,11 @@ import requests
 import json
 import shutil
 from pathlib import Path
-from Utils.ShellUtils import getSerialNoOfEconCameraByIndex
 import os
-import numpy as np
 
 CONFIG_PATH = "./config.json"
 fp = open(CONFIG_PATH)
 config = json.load(fp)
-base_url = config["baseUrl"]
 base_url_tech = config["baseUrlTech"]
 file_upload_url_tech = base_url_tech + "/fileStorage/upload/s3"
 file_download_endpoint = "/fileStorage/download/"
@@ -49,64 +46,6 @@ def recordVideo(videoFolderPath):
             break
 
     cap.release()
-    video_writer.release()
-
-
-def recordVideoWithLogo(videoFolderPath, logoPath, videoIndex: int):
-    camera_serial_number = getSerialNoOfEconCameraByIndex(videoIndex)
-    fp = open(ECON_CAMERA_CONFIG_PATH)
-    econ_config = json.load(fp)
-    camera_position = econ_config[str(camera_serial_number)]["position"]
-    print("camera position: " + camera_position)
-    distortion_matrix = np.load(econ_config[str(camera_serial_number)]["dist_mat_path"])
-    intrinsic_matrix = np.load(econ_config[str(camera_serial_number)]["intrinsic_mat_path"])
-
-    logo = cv2.imread(logoPath, cv2.IMREAD_UNCHANGED)
-    video = cv2.VideoCapture(videoIndex)
-    logo_height, logo_width, _ = logo.shape
-    # Define the position of the logo in the top right corner
-    logo_margin = 10  # Margin from the video edges
-    logo_x = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) - logo_width - logo_margin
-    logo_y = logo_margin
-
-    # Get the video's frames per second (fps) and frame size
-    fps = int(video.get(cv2.CAP_PROP_FPS))
-    frame_size = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-
-    video_writer = get_video_writer(full_path=videoFolderPath, dimensions=frame_size, fps=fps)
-
-    timeout = time.time() + 11  # 11 seconds from now
-    while True:
-        success, frame = video.read()
-        frame = cv2.undistort(frame, intrinsic_matrix, distortion_matrix)
-
-        if not success:
-            break
-        # Create a copy of the frame
-        frame_with_logo = frame.copy()
-
-        # Get the ROI in the frame for logo placement
-        roi = frame_with_logo[logo_y:logo_y + logo_height, logo_x:logo_x + logo_width]
-
-        # Resize the logo image to match the ROI size
-        resized_logo = cv2.resize(logo, (roi.shape[1], roi.shape[0]))
-
-        # Extract the alpha channel of the logo
-        alpha_channel = resized_logo[:, :, 3] / 255.0
-
-        # Apply the logo on the ROI using alpha blending
-        for c in range(0, 3):
-            roi[:, :, c] = (1 - alpha_channel) * roi[:, :, c] + alpha_channel * resized_logo[:, :, c]
-
-        # Update the frame with the logo
-        frame_with_logo[logo_y:logo_y + logo_height, logo_x:logo_x + logo_width] = roi
-
-        # cv2.imshow("Cam", frame)
-        video_writer.write(frame_with_logo)
-
-        if time.time() > timeout:
-            break
-    video.release()
     video_writer.release()
 
 
@@ -220,7 +159,7 @@ def getAllPlayerVideoUrls(all_players_dir_path):
         allVideoIds.append(playerVideoInfo)
 
         # delete file after uploading because the game is ended.
-        # deleteFile(all_players_dir_path + filename)
+        deleteFile(all_players_dir_path + filename)
 
     return allVideoIds
 
