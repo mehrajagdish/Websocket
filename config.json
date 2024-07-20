@@ -1,6 +1,6 @@
 {
-  "bayId": "011",
-  "baseUrlTech": "https://kwan-api.virtueanalytics.com",
+  "bayId": "012",
+  "baseUrlTech": "https://tech.virtueanalytics.com/v-api",
   "cameraRTSP": "rtsp://admin:Admin@123@172.16.0.70/Streaming/Channels/101",
   "logoPath": "./Logo/six2o-logo.png",
   "currentShotVideoName": "video.avi",
@@ -8,5 +8,6 @@
   "allPlayersVideoDirectory": "AllPlayersVideos",
   "websocketServerURI": "ws://172.16.0.43:3000",
   "timeIntervalBetweenEvents": 5.0,
-  "videoLength": 8
+  "videoLength": 4,
+  "animationDirectory": "Animations"
 }
