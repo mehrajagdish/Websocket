@@ -62,7 +62,8 @@ async def client():
                     lastEvent[eventInfo.header.eventName] = time.time()
 
                     if eventInfo.header.eventName == Events.THROW_BALL.value:
-                        recordVideoUsingNetworkCameraWithLogo(CURRENT_VIDEO_FULL_PATH, LOGO_PATH, RTSP_URL, VIDEO_LENGTH)
+                        recordVideoUsingNetworkCameraWithLogo(CURRENT_VIDEO_DIR_PATH, CURRENT_VIDEO_FILE_NAME,
+                                                              LOGO_PATH, RTSP_URL, VIDEO_LENGTH)
                         recordedEventJson = await getVideoRecordedEvent(eventInfo.header.bayInfo.bayId)
                         await websocket.send(recordedEventJson)
 

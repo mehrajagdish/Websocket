@@ -51,7 +51,7 @@ def recordVideo(videoFolderPath):
     video_writer.release()
 
 
-def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, logoPath, rtspUrl, videoLength):
+def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, rtspUrl, videoLength):
     # Ensure the video folder exists
     create_folder_if_not_exists(videoFolderPath)
 
@@ -68,7 +68,7 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, logoPath, rtspUrl, vi
     frame_size = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     print(frame_size)
 
-    video_writer = get_video_writer(full_path=videoFolderPath, dimensions=frame_size, fps=fps)
+    video_writer = get_video_writer(full_path=videoFolderPath + "/" + videoName, dimensions=frame_size, fps=fps)
 
     timeout = time.time() + videoLength
     while True:
