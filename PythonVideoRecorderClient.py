@@ -9,7 +9,7 @@ from EventEnums import Events, Devices
 from EventInfo import EventInfo, Header, Data, BayInfo
 from EventInfo import getEventInfoObject, getEventInfoDict
 from RecordVideoAndUploadUtils import (uploadVideo, checkIfBetterShot, getAllPlayerVideoUrls,
-                                       recordVideoUsingNetworkCameraWithLogo)
+                                       recordVideoUsingNetworkCameraWithLogo, getCurrentVideoUrl)
 
 CONFIG_PATH = "./config.json"
 fp = open(CONFIG_PATH)
@@ -40,8 +40,8 @@ async def getVideoRecordedEvent(forBay):
 
 
 async def client():
-    async with websockets.connect(WS_URI) as websocket:
-        while True:
+    while True:
+        async with websockets.connect(WS_URI) as websocket:
             try:
                 message = await websocket.recv()
                 eventInfo = getEventInfoObject(message)
@@ -75,7 +75,9 @@ async def client():
                                           "Player_" + currentPlayerId, scoreOnCurrentBall)
 
                     elif eventInfo.header.eventName == Events.CURRENT_BALL_VIDEO_URL.value:
-                        videoUrl = uploadVideo(CURRENT_VIDEO_FULL_PATH, CURRENT_VIDEO_FILE_NAME)
+                        scoreOnCurrentBall = eventInfo.data.value.score
+                        videoUrl = getCurrentVideoUrl(CURRENT_VIDEO_DIR_PATH, CURRENT_VIDEO_FILE_NAME,
+                                                      scoreOnCurrentBall)
                         eventInfoDict["header"]["sentBy"] = Devices.RECORDER.value
                         eventInfoDict["header"]["sentTo"] = [Devices.PLAYER_APP.value]
                         eventInfoDict["data"]["value"]["videoUrl"] = videoUrl

@@ -111,12 +111,24 @@ def uploadVideo(videoPath, videoName):
                                  files={'file': (videoName, open(videoPath, 'rb'), 'video/x-msvideo')})
         if response.status_code == 200:
             fileId = response.json()["id"]
-            fileUrl = base_url_tech + file_download_endpoint + fileId
-            return shortenUrl(fileUrl)
+            return base_url_tech + file_download_endpoint + fileId
         return None
     except Exception as e:
         print(e)
         return None
+
+
+def getCurrentVideoUrl(videoPath, videoName, score):
+    temp_video_path = videoPath + "/temp.avi"
+    try:
+        merge_videos(videoPath + "/" + videoName, ANIMATIONS_DIR_PATH + "/" + str(score) + ".avi", temp_video_path)
+        video_url = uploadVideo(videoPath + "/temp.avi", "temp.avi")
+        return video_url
+    except Exception as e:
+        print(e)
+        return None
+    finally:
+        deleteFile(temp_video_path)
 
 
 def copyAndPasteVideo(src, dst):
@@ -180,15 +192,12 @@ def create_folder_if_not_exists(folder_path):
 
 
 def deleteFile(filePath):
-    os.remove(filePath)
+    if os.path.exists(filePath):
+        os.remove(filePath)
 
 
 def add_animation_to_video(video_path, score):
-    for filename in os.listdir(ANIMATIONS_DIR_PATH):
-        animation_of_score = filename.split(".")[0]
-        if animation_of_score == score:
-            merge_videos(video_path, ANIMATIONS_DIR_PATH + "/" + filename, video_path)
-            break
+    merge_videos(video_path, ANIMATIONS_DIR_PATH + "/" + score + ".avi", video_path)
 
 
 def merge_videos(video1_path, video2_path, output_path):

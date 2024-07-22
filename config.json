@@ -1,7 +1,7 @@
 {
   "bayId": "012",
   "baseUrlTech": "https://tech.virtueanalytics.com/v-api",
-  "cameraRTSP": "rtsp://admin:Admin@123@172.16.0.70/Streaming/Channels/101",
+  "cameraRTSP": "rtsp://admin:Admin@123@172.16.0.121/Streaming/Channels/101",
   "logoPath": "./Logo/six2o-logo.png",
   "currentShotVideoName": "video.avi",
   "currentVideoDirectory": "CurrentVideo",
