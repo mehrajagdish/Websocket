@@ -143,10 +143,11 @@ def checkForFile(filePath):
 def transferVideoToAllPlayersVideosFolder(all_players_dir_path, current_video_full_path,
                                           current_video_file_name, current_player, current_ball_score):
     create_folder_if_not_exists(all_players_dir_path)
-    copyAndPasteVideo(current_video_full_path, all_players_dir_path)
-    add_animation_to_video(all_players_dir_path + "/" + current_video_file_name, current_ball_score)
-    os.rename(all_players_dir_path + "/" + current_video_file_name,
-              all_players_dir_path + "/" + current_player + "_" + current_ball_score + ".avi")
+    # copyAndPasteVideo(current_video_full_path, all_players_dir_path)
+    add_animation_to_video(current_video_full_path, current_ball_score,
+                           all_players_dir_path + "/" + current_player + "_" + current_ball_score + ".avi")
+    # os.rename(all_players_dir_path + "/" + current_video_file_name,
+    #           all_players_dir_path + "/" + current_player + "_" + current_ball_score + ".avi")
 
 
 def checkIfBetterShot(all_players_dir_path, current_video_full_path,
@@ -180,7 +181,7 @@ def getAllPlayerVideoUrls(all_players_dir_path):
         allVideoIds.append(playerVideoInfo)
 
         # delete file after uploading because the game is ended.
-        # deleteFile(all_players_dir_path + "/" + filename)
+        deleteFile(all_players_dir_path + "/" + filename)
 
     return allVideoIds
 
@@ -196,8 +197,8 @@ def deleteFile(filePath):
         os.remove(filePath)
 
 
-def add_animation_to_video(video_path, score):
-    merge_videos(video_path, ANIMATIONS_DIR_PATH + "/" + score + ".avi", video_path)
+def add_animation_to_video(video_path, score, output_path):
+    merge_videos(video_path, ANIMATIONS_DIR_PATH + "/" + score + ".avi", output_path)
 
 
 def merge_videos(video1_path, video2_path, output_path):
