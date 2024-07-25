@@ -193,14 +193,10 @@ async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol
 
 
 async def send_message_to_websocket(websocket: websockets.WebSocketClientProtocol, message: dict):
-    global is_ws_connected
     try:
         await websocket.send(json.dumps(message))
     except Exception as e:
         print(f"Error sending message to WebSocket server: {e}")
-    finally:
-        await websocket.close()
-        is_ws_connected = False
 
 
 def get_message_to_be_sent_to_tcp(message_from_websocket: str) -> str | None:
