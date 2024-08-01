@@ -79,15 +79,14 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
                 else:
                     message_to_be_sent = get_message_to_be_sent_to_websocket(message)
                     if message_to_be_sent:
-                        asyncio.run_coroutine_threadsafe(
-                            send_message_to_websocket(websocket, message_to_be_sent), loop
-                        )
+                        asyncio.run_coroutine_threadsafe(send_message_to_websocket(websocket, message_to_be_sent), loop)
             except socket.timeout:
                 print("TCP socket timeout")
 
                 if not is_ws_connected:
                     print("TCP Receive: Websocket connection closed")
                     break
+                asyncio.run_coroutine_threadsafe(websocket.ping(), loop)
 
                 if not ping_tcp_client() and not trying_to_reconnect:
                     asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), loop)
