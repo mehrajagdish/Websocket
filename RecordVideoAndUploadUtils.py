@@ -57,6 +57,9 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
 
     logo = cv2.imread(logoPath, cv2.IMREAD_UNCHANGED)
     video = cv2.VideoCapture(rtspUrl)
+    if not video.isOpened():
+        print("Error: Could not open video stream.")
+        return
     logo_height, logo_width, _ = logo.shape
     # Define the position of the logo in the top right corner
     logo_margin = 10  # Margin from the video edges
@@ -66,7 +69,6 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
     # Get the video's frames per second (fps) and frame size
     fps = int(video.get(cv2.CAP_PROP_FPS))
     frame_size = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    print(frame_size)
 
     video_writer = get_video_writer(full_path=videoFolderPath + "/" + videoName, dimensions=frame_size, fps=fps)
 
@@ -99,6 +101,7 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
         video_writer.write(frame_with_logo)
 
         if time.time() > timeout:
+            print("Video recording completed")
             break
     video.release()
     video_writer.release()
