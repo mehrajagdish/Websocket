@@ -27,30 +27,6 @@ class EndGameValues:
     videoIds = list
 
 
-def recordVideo(videoFolderPath):
-    cap = cv2.VideoCapture(0)
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-
-    _, frame1 = cap.read()
-
-    video_writer = get_video_writer(full_path=videoFolderPath, dimensions=(frame1.shape[1], frame1.shape[0]), fps=fps)
-
-    timeout = time.time() + 10  # 10 seconds from now
-    while True:
-        success, frame = cap.read()
-
-        if not success:
-            break
-        video_writer.write(frame)
-
-        if time.time() > timeout:
-            video_writer.release()
-            break
-
-    cap.release()
-    video_writer.release()
-
-
 def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, rtspUrl, videoLength):
     # Ensure the video folder exists
     create_folder_if_not_exists(videoFolderPath)
@@ -60,6 +36,7 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
     if not video.isOpened():
         print("Error: Could not open video stream.")
         return
+
     logo_height, logo_width, _ = logo.shape
     # Define the position of the logo in the top right corner
     logo_margin = 10  # Margin from the video edges
@@ -72,12 +49,16 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
 
     video_writer = get_video_writer(full_path=videoFolderPath + "/" + videoName, dimensions=frame_size, fps=fps)
 
-    timeout = time.time() + videoLength
-    while True:
+    # Calculate the total number of frames to capture
+    total_frames = int(videoLength * fps)
+    frames_captured = 0
+
+    while frames_captured < total_frames:
         success, frame = video.read()
 
         if not success:
             break
+
         # Create a copy of the frame
         frame_with_logo = frame.copy()
 
@@ -97,12 +78,11 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
         # Update the frame with the logo
         frame_with_logo[logo_y:logo_y + logo_height, logo_x:logo_x + logo_width] = roi
 
-        # cv2.imshow("Cam", frame)
         video_writer.write(frame_with_logo)
 
-        if time.time() > timeout:
-            print("Video recording completed")
-            break
+        frames_captured += 1
+
+    print("Video recording completed")
     video.release()
     video_writer.release()
 
