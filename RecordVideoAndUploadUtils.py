@@ -1,11 +1,12 @@
-import cv2
-from VideoWriter import get_video_writer
-import time
-import requests
 import json
+import os
 import shutil
 from pathlib import Path
-import os
+
+import cv2
+import requests
+
+from VideoWriter import get_video_writer
 
 CONFIG_PATH = "./config.json"
 fp = open(CONFIG_PATH)
@@ -32,7 +33,7 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
     create_folder_if_not_exists(videoFolderPath)
 
     logo = cv2.imread(logoPath, cv2.IMREAD_UNCHANGED)
-    video = cv2.VideoCapture(rtspUrl)
+    video = cv2.VideoCapture(0)
     if not video.isOpened():
         print("Error: Could not open video stream.")
         return
@@ -102,10 +103,10 @@ def uploadVideo(videoPath, videoName):
 
 
 def getCurrentVideoUrl(videoPath, videoName, score):
-    temp_video_path = videoPath + "/temp.avi"
+    temp_video_path = videoPath + "/temp.mp4"
     try:
-        merge_videos(videoPath + "/" + videoName, ANIMATIONS_DIR_PATH + "/" + str(score) + ".avi", temp_video_path)
-        video_url = uploadVideo(videoPath + "/temp.avi", "temp.avi")
+        merge_videos(videoPath + "/" + videoName, ANIMATIONS_DIR_PATH + "/" + str(score) + ".mp4", temp_video_path)
+        video_url = uploadVideo(videoPath + "/temp.mp4", "temp.mp4")
         return video_url
     except Exception as e:
         print(e)
@@ -123,14 +124,14 @@ def checkForFile(filePath):
     return path.is_file()
 
 
-def transferVideoToAllPlayersVideosFolder(all_players_dir_path, current_video_full_path,
-                                          current_video_file_name, current_player, current_ball_score):
+def transferVideoToAllPlayersVideosFolder(all_players_dir_path, current_video_full_path, current_player,
+                                          current_ball_score):
     create_folder_if_not_exists(all_players_dir_path)
     # copyAndPasteVideo(current_video_full_path, all_players_dir_path)
     add_animation_to_video(current_video_full_path, current_ball_score,
-                           all_players_dir_path + "/" + current_player + "_" + current_ball_score + ".avi")
+                           all_players_dir_path + "/" + current_player + "_" + current_ball_score + ".mp4")
     # os.rename(all_players_dir_path + "/" + current_video_file_name,
-    #           all_players_dir_path + "/" + current_player + "_" + current_ball_score + ".avi")
+    #           all_players_dir_path + "/" + current_player + "_" + current_ball_score + ".mp4")
 
 
 def checkIfBetterShot(all_players_dir_path, current_video_full_path,
@@ -145,14 +146,13 @@ def checkIfBetterShot(all_players_dir_path, current_video_full_path,
             run_in_filename = name.split("_")[2]
             if not int(current_ball_score) < int(run_in_filename):
                 os.remove(all_players_dir_path + "/" + filename)
-                transferVideoToAllPlayersVideosFolder(all_players_dir_path,
-                                                      current_video_full_path, current_video_file_name, current_player,
+                transferVideoToAllPlayersVideosFolder(all_players_dir_path, current_video_full_path, current_player,
                                                       current_ball_score)
 
     # file for current player does not exist
     if not file_for_player_exists:
-        transferVideoToAllPlayersVideosFolder(all_players_dir_path, current_video_full_path,
-                                              current_video_file_name, current_player, current_ball_score)
+        transferVideoToAllPlayersVideosFolder(all_players_dir_path, current_video_full_path, current_player,
+                                              current_ball_score)
 
 
 def getAllPlayerVideoUrls(all_players_dir_path):
@@ -181,7 +181,7 @@ def deleteFile(filePath):
 
 
 def add_animation_to_video(video_path, score, output_path):
-    merge_videos(video_path, ANIMATIONS_DIR_PATH + "/" + score + ".avi", output_path)
+    merge_videos(video_path, ANIMATIONS_DIR_PATH + "/" + score + ".mp4", output_path)
 
 
 def merge_videos(video1_path, video2_path, output_path):
