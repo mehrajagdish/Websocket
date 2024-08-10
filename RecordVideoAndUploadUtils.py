@@ -33,7 +33,7 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
     create_folder_if_not_exists(videoFolderPath)
 
     logo = cv2.imread(logoPath, cv2.IMREAD_UNCHANGED)
-    video = cv2.VideoCapture(0)
+    video = cv2.VideoCapture(rtspUrl)
     if not video.isOpened():
         print("Error: Could not open video stream.")
         return
