@@ -92,7 +92,7 @@ def uploadVideo(videoPath, videoName):
     parameters = {"payload": '{"bucketName":"VIRTUE_USER_UPLOADS","dirPrefix":"GENERAL_DOCS","purpose":"file upload"}'}
     try:
         response = requests.post(file_upload_url_tech, params=parameters,
-                                 files={'file': (videoName, open(videoPath, 'rb'), 'video/x-msvideo')})
+                                 files={'file': (videoName, open(videoPath, 'rb'), 'video/mp4')})
         if response.status_code == 200:
             fileId = response.json()["id"]
             return base_url_tech + file_download_endpoint + fileId
