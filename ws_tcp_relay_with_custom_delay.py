@@ -176,14 +176,15 @@ def ping_tcp_client() -> bool:
 
 
 def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
+    global is_ws_connected
     while is_ws_connected:
         try:
             print("Pinging WebSocket server...")
-            loop = asyncio.get_running_loop()
-            asyncio.run_coroutine_threadsafe(websocket.ping(), loop)
+            asyncio.run(websocket.ping())
             time.sleep(5)
         except Exception as e:
             print(f"Error pinging WebSocket server: {e}")
+            is_ws_connected = False
 
 
 async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol):
