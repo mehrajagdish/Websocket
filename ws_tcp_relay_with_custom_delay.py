@@ -31,15 +31,15 @@ is_ws_connected = False
 
 
 def trigger_received(message_from_tcp: str) -> bool:
-    print("Checking if trigger received")
+    # print("Checking if trigger received")
     try:
         message = json.loads(message_from_tcp)
         if message["response"] == BowlingMachineResponse.BALLTRIGGERED.value:
-            print("Trigger Received")
+            # print("Trigger Received")
             return True
-        print("Trigger Not Received")
+        # print("Trigger Not Received")
     except Exception as e:
-        print(e)
+        print("Trigger Received Error: ", e)
     return False
 
 
@@ -55,7 +55,7 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
             try:
                 message = tcp_socket.recv(1024).decode('utf-8')
                 print("TCP Client Received: ", message)
-                if not message:
+                if not message and not ping_tcp_client():
                     print("TCP connection closed by server.")
                     break
 
@@ -81,12 +81,12 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
                     if message_to_be_sent:
                         asyncio.run_coroutine_threadsafe(send_message_to_websocket(websocket, message_to_be_sent), loop)
             except socket.timeout:
-                print("TCP socket timeout")
+                # print("TCP socket timeout")
 
                 if not is_ws_connected:
-                    print("TCP Receive: Websocket connection closed")
+                    # print("TCP Receive: Websocket connection closed")
                     break
-                asyncio.run_coroutine_threadsafe(websocket.ping(), loop)
+                # asyncio.run_coroutine_threadsafe(websocket.ping(), loop)
 
                 if not ping_tcp_client() and not trying_to_reconnect:
                     asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), loop)
@@ -176,11 +176,22 @@ def ping_tcp_client() -> bool:
         return False
 
 
+def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
+    while is_ws_connected:
+        try:
+            print("Pinging WebSocket server...")
+            loop = asyncio.get_running_loop()
+            asyncio.run_coroutine_threadsafe(websocket.ping(), loop)
+            time.sleep(5)
+        except Exception as e:
+            print(f"Error pinging WebSocket server: {e}")
+
+
 async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol):
     global tcp_socket, is_ws_connected
     try:
         async for message in websocket:
-            print(f"Received from WebSocket server: {message}")
+            # print(f"Received from WebSocket server: {message}")
             message_to_be_sent = get_message_to_be_sent_to_tcp(message)
             if message_to_be_sent is not None:
                 send_message_to_tcp(message_to_be_sent)
@@ -265,6 +276,7 @@ async def start_websocket_client():
             async with websockets.connect(WS_URL) as websocket:
                 print("Successfully connected to WebSocket server.")
                 is_ws_connected = True
+                ping_ws_server(websocket)
                 tcp_socket = start_tcp_client(websocket)
                 if tcp_socket:
                     await websocket_client_receive(websocket)
