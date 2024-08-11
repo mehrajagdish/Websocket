@@ -70,9 +70,8 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
                         send_feed_command_to_tcp()
                         message_to_be_sent = get_message_to_be_sent_to_websocket(message)
                         if message_to_be_sent:
-                            asyncio.run_coroutine_threadsafe(
-                                send_message_to_websocket(websocket, message_to_be_sent), loop
-                            )
+                            asyncio.run_coroutine_threadsafe(send_message_to_websocket(websocket, message_to_be_sent),
+                                                             loop)
                         last_trigger_time = time.time()
                     else:
                         print("Skipping event, time difference: ", time.time() - last_trigger_time)
@@ -276,7 +275,7 @@ async def start_websocket_client():
             async with websockets.connect(WS_URL) as websocket:
                 print("Successfully connected to WebSocket server.")
                 is_ws_connected = True
-                threading.Thread(target=ping_ws_server, args=websocket).start()
+                threading.Thread(target=ping_ws_server, args=(websocket,)).start()
                 tcp_socket = start_tcp_client(websocket)
                 if tcp_socket:
                     await websocket_client_receive(websocket)
