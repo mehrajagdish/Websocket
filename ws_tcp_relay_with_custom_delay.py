@@ -276,7 +276,7 @@ async def start_websocket_client():
             async with websockets.connect(WS_URL) as websocket:
                 print("Successfully connected to WebSocket server.")
                 is_ws_connected = True
-                ping_ws_server(websocket)
+                threading.Thread(target=ping_ws_server, args=websocket).start()
                 tcp_socket = start_tcp_client(websocket)
                 if tcp_socket:
                     await websocket_client_receive(websocket)
