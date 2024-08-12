@@ -49,7 +49,7 @@ def send_feed_command_to_tcp():
 
 
 def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: AbstractEventLoop):
-    global last_trigger_time, tcp_socket
+    global last_trigger_time, tcp_socket, trying_to_reconnect, is_ws_connected
     try:
         while True:
             try:
@@ -106,7 +106,8 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
 async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol):
     print("Attempting to reconnect to TCP server...")
     global trying_to_reconnect, tcp_socket
-
+    if trying_to_reconnect:
+        return
     trying_to_reconnect = True
     while True:
         try:
@@ -179,7 +180,7 @@ def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
     global is_ws_connected
     while is_ws_connected:
         try:
-            print("Pinging WebSocket server...")
+            # print("Pinging WebSocket server...")
             asyncio.run(websocket.ping())
             time.sleep(5)
         except Exception as e:
