@@ -4,11 +4,12 @@ import os
 import time
 
 import websockets
+from websockets.exceptions import ConnectionClosedError
 
 from EventEnums import Events, Devices
 from EventInfo import EventInfo, Header, Data, BayInfo
 from EventInfo import getEventInfoObject, getEventInfoDict
-from RecordVideoAndUploadUtils import (uploadVideo, checkIfBetterShot, getAllPlayerVideoUrls,
+from RecordVideoAndUploadUtils import (checkIfBetterShot, getAllPlayerVideoUrls,
                                        recordVideoUsingNetworkCameraWithLogo, getCurrentVideoUrl)
 
 CONFIG_PATH = "./config.json"
@@ -41,61 +42,93 @@ async def getVideoRecordedEvent(forBay):
 
 async def client():
     while True:
-        async with websockets.connect(WS_URI) as websocket:
-            try:
-                message = await websocket.recv()
-                eventInfo = getEventInfoObject(message)
-                eventInfoDict = getEventInfoDict(message)
+        try:
+            async with websockets.connect(WS_URI) as websocket:
+                print(f"Connected to websocket at {WS_URI}")
+                while True:
+                    try:
+                        message = await websocket.recv()
+                        eventInfo = getEventInfoObject(message)
+                        eventInfoDict = getEventInfoDict(message)
 
-                if not eventInfo.header.bayInfo.isForAllBays:
-                    if eventInfo.header.bayInfo.bayId != bayId:
-                        continue
+                        if not eventInfo.header.bayInfo.isForAllBays:
+                            if eventInfo.header.bayInfo.bayId != bayId:
+                                continue
 
-                if Devices.RECORDER.value in eventInfo.header.sentTo:
+                        if Devices.RECORDER.value in eventInfo.header.sentTo:
 
-                    if eventInfo.header.eventName in lastEvent:
-                        if time.time() - lastEvent[eventInfo.header.eventName] < TIME_INTERVAL_BETWEEN_EVENTS:
-                            print("Skipping event", eventInfo.header.eventName)
-                            print("Time Difference: ", time.time() - lastEvent[eventInfo.header.eventName])
-                            continue
+                            if eventInfo.header.eventName in lastEvent:
+                                if time.time() - lastEvent[eventInfo.header.eventName] < TIME_INTERVAL_BETWEEN_EVENTS:
+                                    print("Skipping event", eventInfo.header.eventName)
+                                    print("Time Difference: ", time.time() - lastEvent[eventInfo.header.eventName])
+                                    continue
 
-                    lastEvent[eventInfo.header.eventName] = time.time()
+                            lastEvent[eventInfo.header.eventName] = time.time()
 
-                    if eventInfo.header.eventName == Events.THROW_BALL.value:
-                        recordVideoUsingNetworkCameraWithLogo(CURRENT_VIDEO_DIR_PATH, CURRENT_VIDEO_FILE_NAME,
-                                                              LOGO_PATH, RTSP_URL, VIDEO_LENGTH)
-                        recordedEventJson = await getVideoRecordedEvent(eventInfo.header.bayInfo.bayId)
-                        await websocket.send(recordedEventJson)
+                            if eventInfo.header.eventName == Events.THROW_BALL.value:
+                                recordVideoUsingNetworkCameraWithLogo(CURRENT_VIDEO_DIR_PATH, CURRENT_VIDEO_FILE_NAME,
+                                                                      LOGO_PATH, RTSP_URL, VIDEO_LENGTH)
+                                recordedEventJson = await getVideoRecordedEvent(eventInfo.header.bayInfo.bayId)
+                                await websocket.send(recordedEventJson)
 
-                    elif eventInfo.header.eventName == Events.CURRENT_BALL_INFO.value:
-                        scoreOnCurrentBall = eventInfo.data.value.score
-                        currentPlayerId = eventInfo.data.value.scoredBy.id
+                            elif eventInfo.header.eventName == Events.CURRENT_BALL_INFO.value:
+                                scoreOnCurrentBall = eventInfo.data.value.score
+                                currentPlayerId = eventInfo.data.value.scoredBy.id
 
-                        checkIfBetterShot(ALL_PLAYERS_VIDEOS_DIR_PATH, CURRENT_VIDEO_FULL_PATH, CURRENT_VIDEO_FILE_NAME,
-                                          "Player_" + currentPlayerId, scoreOnCurrentBall)
+                                checkIfBetterShot(ALL_PLAYERS_VIDEOS_DIR_PATH, CURRENT_VIDEO_FULL_PATH,
+                                                  CURRENT_VIDEO_FILE_NAME,
+                                                  "Player_" + currentPlayerId, scoreOnCurrentBall)
 
-                    elif eventInfo.header.eventName == Events.CURRENT_BALL_VIDEO_URL.value:
-                        scoreOnCurrentBall = eventInfo.data.value.score
-                        videoUrl = getCurrentVideoUrl(CURRENT_VIDEO_DIR_PATH, CURRENT_VIDEO_FILE_NAME,
-                                                      scoreOnCurrentBall)
-                        eventInfoDict["header"]["sentBy"] = Devices.RECORDER.value
-                        eventInfoDict["header"]["sentTo"] = [Devices.PLAYER_APP.value]
-                        eventInfoDict["data"]["value"]["videoUrl"] = videoUrl
-                        await websocket.send(json.dumps(eventInfoDict))
+                            elif eventInfo.header.eventName == Events.CURRENT_BALL_VIDEO_URL.value:
+                                scoreOnCurrentBall = eventInfo.data.value.score
+                                videoUrl = getCurrentVideoUrl(CURRENT_VIDEO_DIR_PATH, CURRENT_VIDEO_FILE_NAME,
+                                                              scoreOnCurrentBall)
+                                eventInfoDict["header"]["sentBy"] = Devices.RECORDER.value
+                                eventInfoDict["header"]["sentTo"] = [Devices.PLAYER_APP.value]
+                                eventInfoDict["data"]["value"]["videoUrl"] = videoUrl
+                                await websocket.send(json.dumps(eventInfoDict))
 
-                    elif eventInfo.header.eventName == Events.GAME_ENDED.value:
-                        playerIds = getAllPlayerVideoUrls(ALL_PLAYERS_VIDEOS_DIR_PATH)
-                        eventInfoDict["header"]["sentBy"] = Devices.RECORDER.value
-                        eventInfoDict["header"]["sentTo"] = [Devices.PLAYER_APP.value]
-                        eventInfoDict["data"]["value"] = playerIds
-                        await websocket.send(json.dumps(eventInfoDict))
+                            elif eventInfo.header.eventName == Events.GAME_ENDED.value:
+                                playerIds = getAllPlayerVideoUrls(ALL_PLAYERS_VIDEOS_DIR_PATH)
+                                eventInfoDict["header"]["sentBy"] = Devices.RECORDER.value
+                                eventInfoDict["header"]["sentTo"] = [Devices.PLAYER_APP.value]
+                                eventInfoDict["data"]["value"] = playerIds
+                                await websocket.send(json.dumps(eventInfoDict))
 
-            except ConnectionError as e:
-                print(f"Connection Error: {e}")
-            except json.decoder.JSONDecodeError as e:
-                print(f"Invalid JSON: {e}")
-            except Exception as e:
-                print(f"Error: {e}")
+                    except ConnectionClosedError:
+                        print("Connection closed, attempting to reconnect...")
+                        break
+                    except json.decoder.JSONDecodeError as e:
+                        print(f"Invalid JSON: {e}")
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception as e:
+                        print(f"Error: {e}")
+
+        except ConnectionError as e:
+            print(f"Connection Error: {e}")
+        except asyncio.CancelledError:
+            print("Client task was cancelled")
+            break
+        except KeyboardInterrupt:
+            print("KeyboardInterrupt detected, closing the client.")
+            break
+        except Exception as e:
+            print(f"Error: {e}")
+
+        await asyncio.sleep(5)
 
 
-asyncio.run(client())
+async def main():
+    try:
+        await client()
+    except asyncio.CancelledError:
+        print("Main task was cancelled")
+    finally:
+        print("Shutting down gracefully...")
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Process interrupted by user, exiting.")
