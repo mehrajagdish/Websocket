@@ -188,7 +188,7 @@ def feed_command_received_from_websocket(message_from_websocket) -> bool:
     return False
 
 
-def handle_feed_command(websocket: websockets.WebSocketClientProtocol):
+async def handle_feed_command(websocket: websockets.WebSocketClientProtocol):
     message_to_be_sent = {
         "header": {
             "sentBy": Devices.TRIGGER.value,
@@ -206,7 +206,7 @@ def handle_feed_command(websocket: websockets.WebSocketClientProtocol):
             "value": "1"
         }
     }
-    send_message_to_websocket(websocket, message_to_be_sent)
+    await send_message_to_websocket(websocket, message_to_be_sent)
 
 
 def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
@@ -230,7 +230,7 @@ async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol
             if message_to_be_sent is not None:
                 send_message_to_tcp(message_to_be_sent)
             if feed_command_received_from_websocket(message):
-                handle_feed_command(websocket)
+                await handle_feed_command(websocket)
 
     except Exception as e:
         print(f"WebSocket client receive error: {e}")
