@@ -176,6 +176,39 @@ def ping_tcp_client() -> bool:
         return False
 
 
+def feed_command_received_from_websocket(message_from_websocket) -> bool:
+    eventInfo = getEventInfoObject(message_from_websocket)
+
+    if not eventInfo.header.bayInfo.isForAllBays and eventInfo.header.bayInfo.bayId != bayId:
+        return False
+
+    if Devices.BOWLING_MACHINE.value in eventInfo.header.sentTo:
+        if Events.FEED_BOWLING_MACHINE.value == eventInfo.header.eventName:
+            return True
+    return False
+
+
+def handle_feed_command(websocket: websockets.WebSocketClientProtocol):
+    message_to_be_sent = {
+        "header": {
+            "sentBy": Devices.TRIGGER.value,
+            "sentTo": [
+                Devices.RECORDER.value,
+                Devices.DETECTOR.value
+            ],
+            "eventName": Events.THROW_BALL.value,
+            "bayInfo": {
+                "isForAllBays": False,
+                "bayId": bayId
+            }
+        },
+        "data": {
+            "value": "1"
+        }
+    }
+    send_message_to_websocket(websocket, message_to_be_sent)
+
+
 def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
     global is_ws_connected
     while is_ws_connected:
@@ -196,6 +229,9 @@ async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol
             message_to_be_sent = get_message_to_be_sent_to_tcp(message)
             if message_to_be_sent is not None:
                 send_message_to_tcp(message_to_be_sent)
+            if feed_command_received_from_websocket(message):
+                handle_feed_command(websocket)
+
     except Exception as e:
         print(f"WebSocket client receive error: {e}")
     finally:
