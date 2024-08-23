@@ -28,17 +28,15 @@ async def broadcast(message):
 
 async def broadcast_messages():
     while True:
+        # await asyncio.sleep(1)
         message = await messages.get()
         await broadcast(message)
 
 
 async def main():
-    server = await websockets.serve(handler, "localhost", 3000)
-    await asyncio.gather(server.wait_closed(), broadcast_messages())
+    async with websockets.serve(handler, port=3000, ping_interval=30, ping_timeout=15):
+        await broadcast_messages()
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Server shutting down gracefully")
+    asyncio.run(main())
