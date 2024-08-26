@@ -240,9 +240,11 @@ async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol
 
 
 async def send_message_to_websocket(websocket: websockets.WebSocketClientProtocol, message: dict):
+    global is_ws_connected
     try:
         await websocket.send(json.dumps(message))
     except Exception as e:
+        is_ws_connected = False
         print(f"Error sending message to WebSocket server: {e}")
 
 
