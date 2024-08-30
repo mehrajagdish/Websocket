@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import threading
 import time
 
 import websockets
@@ -29,6 +30,7 @@ TIME_INTERVAL_BETWEEN_EVENTS = config["timeIntervalBetweenEvents"]
 VIDEO_LENGTH = config["videoLength"]
 
 lastEvent = {}
+is_ws_connected = False
 
 
 async def getVideoRecordedEvent(forBay):
@@ -40,25 +42,34 @@ async def getVideoRecordedEvent(forBay):
     return json.dumps(event, default=vars)
 
 
-async def ping_websocket(websocket):
-    try:
-        while True:
+async def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
+    global is_ws_connected
+    while is_ws_connected:
+        try:
             await websocket.ping()
-            await asyncio.sleep(5)
-    except asyncio.CancelledError:
-        print("Ping task was cancelled")
-    except Exception as e:
-        print(f"Ping error: {e}")
+            await asyncio.sleep(5)  # Non-blocking sleep
+        except websockets.ConnectionClosedError:
+            print("WebSocket connection closed while pinging.")
+            is_ws_connected = False
+        except Exception as e:
+            print(f"Error pinging WebSocket server: {e}")
+            is_ws_connected = False
+
+
+def start_ping_thread(websocket: websockets.WebSocketClientProtocol):
+    asyncio.run(ping_ws_server(websocket))
 
 
 async def client():
+    global is_ws_connected
     while True:
         try:
             async with websockets.connect(WS_URI) as websocket:
                 print(f"Connected to websocket at {WS_URI}")
 
-                # Start pinging the server every 5 seconds
-                ping_task = asyncio.create_task(ping_websocket(websocket))
+                print("Successfully connected to WebSocket server.")
+                is_ws_connected = True
+                threading.Thread(target=start_ping_thread, args=(websocket,)).start()
 
                 try:
                     while True:
@@ -119,8 +130,6 @@ async def client():
                     raise
                 except Exception as e:
                     print(f"Error: {e}")
-                finally:
-                    ping_task.cancel()  # Cancel the ping task when the connection is closed
 
         except ConnectionError as e:
             print(f"Connection Error: {e}")
@@ -132,6 +141,10 @@ async def client():
             break
         except Exception as e:
             print(f"Error: {e}")
+
+        finally:
+            is_ws_connected = False
+            print("Reconnecting to WebSocket server in 5 seconds...")
 
         await asyncio.sleep(5)
 
