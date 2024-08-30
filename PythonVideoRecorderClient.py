@@ -40,13 +40,28 @@ async def getVideoRecordedEvent(forBay):
     return json.dumps(event, default=vars)
 
 
+async def ping_websocket(websocket):
+    try:
+        while True:
+            await websocket.ping()
+            await asyncio.sleep(5)
+    except asyncio.CancelledError:
+        print("Ping task was cancelled")
+    except Exception as e:
+        print(f"Ping error: {e}")
+
+
 async def client():
     while True:
         try:
             async with websockets.connect(WS_URI) as websocket:
                 print(f"Connected to websocket at {WS_URI}")
-                while True:
-                    try:
+
+                # Start pinging the server every 5 seconds
+                ping_task = asyncio.create_task(ping_websocket(websocket))
+
+                try:
+                    while True:
                         message = await websocket.recv()
                         eventInfo = getEventInfoObject(message)
                         eventInfoDict = getEventInfoDict(message)
@@ -95,15 +110,17 @@ async def client():
                                 eventInfoDict["data"]["value"] = playerIds
                                 await websocket.send(json.dumps(eventInfoDict))
 
-                    except ConnectionClosedError:
-                        print("Connection closed, attempting to reconnect...")
-                        break
-                    except json.decoder.JSONDecodeError as e:
-                        print(f"Invalid JSON: {e}")
-                    except asyncio.CancelledError:
-                        raise
-                    except Exception as e:
-                        print(f"Error: {e}")
+                except ConnectionClosedError:
+                    print("Connection closed, attempting to reconnect...")
+                    break
+                except json.decoder.JSONDecodeError as e:
+                    print(f"Invalid JSON: {e}")
+                except asyncio.CancelledError:
+                    raise
+                except Exception as e:
+                    print(f"Error: {e}")
+                finally:
+                    ping_task.cancel()  # Cancel the ping task when the connection is closed
 
         except ConnectionError as e:
             print(f"Connection Error: {e}")
@@ -126,6 +143,7 @@ async def main():
         print("Main task was cancelled")
     finally:
         print("Shutting down gracefully...")
+
 
 if __name__ == "__main__":
     try:

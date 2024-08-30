@@ -126,6 +126,8 @@ def checkForFile(filePath):
 
 def transferVideoToAllPlayersVideosFolder(all_players_dir_path, current_video_full_path, current_player,
                                           current_ball_score):
+    if current_ball_score == "0":
+        return
     create_folder_if_not_exists(all_players_dir_path)
     # copyAndPasteVideo(current_video_full_path, all_players_dir_path)
     add_animation_to_video(current_video_full_path, current_ball_score,
