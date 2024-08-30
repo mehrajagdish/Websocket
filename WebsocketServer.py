@@ -1,18 +1,40 @@
 import asyncio
 import logging
+import time
+from datetime import datetime
 import websockets
+import pytz  # Import pytz for timezone handling
 
 CLIENTS = set()
 messages = asyncio.Queue()
 
-# Configure logging
+# Set IST timezone
+IST = pytz.timezone('Asia/Kolkata')
+
+
+class ISTFormatter(logging.Formatter):
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, tz=IST)
+        if datefmt:
+            s = dt.strftime(datefmt)
+        else:
+            s = dt.isoformat()
+        return s
+
+
+# Configure logging with IST timezone
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
     level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
+# Update the logging formatter to use IST
+for handler in logging.root.handlers:
+    handler.setFormatter(ISTFormatter(handler.formatter._fmt, handler.formatter.datefmt))
 
+
+# Function to handle individual client connection
 async def handler(websocket):
     CLIENTS.add(websocket)
     logging.info(f"New client connected: {websocket.remote_address}")
@@ -31,25 +53,29 @@ async def handler(websocket):
         logging.info(f"Client removed: {websocket.remote_address}")
 
 
+# Function to broadcast messages to all clients
 async def broadcast(message):
+    start_time = time.time()  # Start time
     logging.info(f"Broadcasting to {len(CLIENTS)} clients")
-    tasks = []
     for websocket in CLIENTS.copy():
-        if message.get("sender") != websocket:
-            tasks.append(websocket.send(message.get("message")))
+        try:
+            if message.get("sender") != websocket:
+                await websocket.send(message.get("message"))
+        except websockets.ConnectionClosed:
+            logging.warning(f"Failed to send message to {websocket.remote_address}: Connection closed")
+        except Exception as e:
+            logging.error(f"Failed to send message to {websocket.remote_address}: {str(e)}")
 
-    # Run all send operations concurrently
-    if tasks:
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        for result in results:
-            if isinstance(result, Exception):
-                logging.error(f"Error during broadcast: {str(result)}")
+    end_time = time.time()  # End time
+    total_time = end_time - start_time
+    logging.info(f"Time taken to broadcast message: {total_time:.4f} seconds")
 
 
+# Function to process messages from the queue and broadcast them
 async def broadcast_messages():
     while True:
         message = await messages.get()
-        logging.info(f"Broadcasting message: {message.get('message')}")
+        logging.info(f"Processing message for broadcast: {message.get('message')}")
         await broadcast(message)
 
 
