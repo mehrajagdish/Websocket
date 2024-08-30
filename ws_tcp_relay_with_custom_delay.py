@@ -223,10 +223,6 @@ async def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
             is_ws_connected = False
 
 
-def start_ping_thread(websocket: websockets.WebSocketClientProtocol):
-    asyncio.run(ping_ws_server(websocket))
-
-
 async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol):
     global tcp_socket, is_ws_connected
     try:
@@ -321,7 +317,7 @@ async def start_websocket_client():
             async with websockets.connect(WS_URL) as websocket:
                 print("Successfully connected to WebSocket server.")
                 is_ws_connected = True
-                threading.Thread(target=start_ping_thread, args=(websocket,)).start()
+                ping_task = asyncio.create_task(ping_ws_server(websocket))
                 tcp_socket = start_tcp_client(websocket)
                 if tcp_socket:
                     await websocket_client_receive(websocket)
@@ -330,6 +326,7 @@ async def start_websocket_client():
         except Exception as e:
             print(f"Error connecting to WebSocket server: {e}")
             is_ws_connected = False
+        await ping_task
         await asyncio.sleep(TIMEOUT)
 
 
