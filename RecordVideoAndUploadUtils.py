@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import time
 from pathlib import Path
 
 import cv2
@@ -53,7 +54,7 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
     # Calculate the total number of frames to capture
     total_frames = int(videoLength * fps)
     frames_captured = 0
-
+    start_time = time.time()*1000
     while frames_captured < total_frames:
         success, frame = video.read()
 
@@ -83,7 +84,7 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
 
         frames_captured += 1
 
-    print("Video recording completed")
+    print("Video recording completed. Time taken: ", str(round(time.time() - start_time)) + " seconds")
     video.release()
     video_writer.release()
 
