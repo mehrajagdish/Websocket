@@ -54,7 +54,7 @@ def recordVideoUsingNetworkCameraWithLogo(videoFolderPath, videoName, logoPath, 
     # Calculate the total number of frames to capture
     total_frames = int(videoLength * fps)
     frames_captured = 0
-    start_time = time.time()*1000
+    start_time = time.time()
     while frames_captured < total_frames:
         success, frame = video.read()
 
