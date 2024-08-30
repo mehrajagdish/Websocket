@@ -51,11 +51,11 @@ async def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
         except ConnectionClosedError:
             print("WebSocket connection closed while pinging.")
             is_ws_connected = False
-            break  # Exit the loop and stop pinging
+            break
         except Exception as e:
             print(f"Error pinging WebSocket server: {e}")
             is_ws_connected = False
-            break  # Exit the loop and stop pinging
+            break
 
 
 async def handleMessage(message, websocket):
@@ -124,7 +124,6 @@ async def client():
                         await handleMessage(message, websocket)
                 except ConnectionClosedError:
                     print("Connection closed, attempting to reconnect...")
-                    break
                 except json.decoder.JSONDecodeError as e:
                     print(f"Invalid JSON: {e}")
                 except asyncio.CancelledError:
@@ -133,7 +132,7 @@ async def client():
                     print(f"Error: {e}")
 
                 # Wait for the ping task to finish if the WebSocket connection closes
-                ping_task.cancel()
+                # ping_task.cancel()
                 await ping_task
 
         except ConnectionError as e:
