@@ -48,16 +48,25 @@ async def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
         try:
             await websocket.ping()
             await asyncio.sleep(5)  # Non-blocking sleep
-        except websockets.ConnectionClosedError:
+        except ConnectionClosedError:
             print("WebSocket connection closed while pinging.")
             is_ws_connected = False
+            break  # Exit the loop and stop pinging
         except Exception as e:
             print(f"Error pinging WebSocket server: {e}")
             is_ws_connected = False
+            break  # Exit the loop and stop pinging
 
 
 def start_ping_thread(websocket: websockets.WebSocketClientProtocol):
-    asyncio.run(ping_ws_server(websocket))
+    # Wrap the async function call with an asyncio event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(ping_ws_server(websocket))
+    finally:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
 
 
 async def client():
@@ -67,9 +76,9 @@ async def client():
             async with websockets.connect(WS_URI) as websocket:
                 print(f"Connected to websocket at {WS_URI}")
 
-                print("Successfully connected to WebSocket server.")
                 is_ws_connected = True
-                threading.Thread(target=start_ping_thread, args=(websocket,)).start()
+                ping_thread = threading.Thread(target=start_ping_thread, args=(websocket,))
+                ping_thread.start()
 
                 try:
                     while True:
