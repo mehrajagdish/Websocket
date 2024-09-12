@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import socket
 import threading
 import time
@@ -10,6 +11,11 @@ import websockets
 from BowlingMachine import BowlingMachineResponse
 from EventEnums import Events, Devices
 from EventInfo import getEventInfoObject
+
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 
 CONFIG_PATH = "./config.json"
 with open(CONFIG_PATH) as fp:
@@ -31,15 +37,12 @@ is_ws_connected = False
 
 
 def trigger_received(message_from_tcp: str) -> bool:
-    # print("Checking if trigger received")
     try:
         message = json.loads(message_from_tcp)
         if message["response"] == BowlingMachineResponse.BALLTRIGGERED.value:
-            # print("Trigger Received")
             return True
-        # print("Trigger Not Received")
     except Exception as e:
-        print("Trigger Received Error: ", e)
+        logging.error("Trigger Received Error: ", e)
     return False
 
 
@@ -54,14 +57,13 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
         while True:
             try:
                 message = tcp_socket.recv(1024).decode('utf-8')
-                print("TCP Client Received: ", message)
                 if not message and not ping_tcp_client():
-                    print("TCP connection closed by server.")
+                    logging.info("TCP connection closed by server.")
                     break
 
                 message = message.strip('"')
                 if len(message.strip()) == 0:
-                    print("TCP: Empty message")
+                    logging.info("TCP: Empty message")
                     continue
 
                 if trigger_received(message):
@@ -74,27 +76,24 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
                                                              loop)
                         last_trigger_time = time.time()
                     else:
-                        print("Skipping event, time difference: ", time.time() - last_trigger_time)
+                        logging.info("Skipping event, time difference: ", time.time() - last_trigger_time)
                 else:
                     message_to_be_sent = get_message_to_be_sent_to_websocket(message)
                     if message_to_be_sent:
                         asyncio.run_coroutine_threadsafe(send_message_to_websocket(websocket, message_to_be_sent), loop)
             except socket.timeout:
-                # print("TCP socket timeout")
-
                 if not is_ws_connected:
-                    # print("TCP Receive: Websocket connection closed")
+                    logging.info("TCP Receive: Websocket connection closed")
                     break
-                # asyncio.run_coroutine_threadsafe(websocket.ping(), loop)
 
                 if not ping_tcp_client() and not trying_to_reconnect:
                     asyncio.run_coroutine_threadsafe(handle_tcp_disconnection(websocket), loop)
             except socket.error as e:
-                print(f"TCP socket error: {e}")
+                logging.error(f"TCP socket error: {e}")
                 break
 
     except Exception as e:
-        print(f"TCP client receive error: {e}")
+        logging.error(f"TCP client receive error: {e}")
     finally:
         if tcp_socket:
             tcp_socket.close()
@@ -104,7 +103,7 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
 
 
 async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol):
-    print("Attempting to reconnect to TCP server...")
+    logging.info("Attempting to reconnect to TCP server...")
     global trying_to_reconnect, tcp_socket
     if trying_to_reconnect:
         return
@@ -115,14 +114,13 @@ async def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol
             tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             tcp_socket.settimeout(TIMEOUT)
             tcp_socket.connect((TCP_IP, TCP_PORT))
-            # tcp_socket.settimeout(None)
-            print("Successfully reconnected to TCP server.")
+            logging.info("Successfully reconnected to TCP server.")
             trying_to_reconnect = False
             loop = asyncio.get_running_loop()
             threading.Thread(target=tcp_client_receive, args=(websocket, loop)).start()
             return
         except Exception as e:
-            print(f"Reconnection attempt failed: {e}")
+            logging.error(f"Reconnection attempt failed: {e}")
             if tcp_socket:
                 tcp_socket.close()
                 tcp_socket = None
@@ -133,10 +131,9 @@ def send_message_to_tcp(message: str):
     global tcp_socket
     if tcp_socket:
         try:
-            print("Sending message to TCP server :" + message)
             tcp_socket.sendall(message.encode('utf-8'))
         except Exception as e:
-            print(f"Error sending message to TCP server: {e}")
+            logging.error(f"Error sending message to TCP server: {e}")
 
 
 def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.socket | None:
@@ -151,13 +148,12 @@ def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.so
     tcp_socket.settimeout(TIMEOUT)
     try:
         tcp_socket.connect((TCP_IP, TCP_PORT))
-        # tcp_socket.settimeout(None)
-        print("Successfully connected to TCP server.")
+        logging.info("Successfully connected to TCP server.")
         loop = asyncio.get_running_loop()
         threading.Thread(target=tcp_client_receive, args=(websocket, loop)).start()
         return tcp_socket
     except Exception as e:
-        print(f"Error connecting to TCP server: {e}")
+        logging.error(f"Error connecting to TCP server: {e}")
         tcp_socket.close()
         tcp_socket = None
         return None
@@ -166,13 +162,12 @@ def start_tcp_client(websocket: websockets.WebSocketClientProtocol) -> socket.so
 def ping_tcp_client() -> bool:
     global ping_tcp_socket
     try:
-        # Create a socket
         ping_tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         ping_tcp_socket.settimeout(5)
         ping_tcp_socket.connect((TCP_IP, TCP_PORT))
         ping_tcp_socket.close()
         return True
-    except socket.error as e:
+    except socket.error:
         return False
 
 
@@ -213,13 +208,14 @@ async def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
     global is_ws_connected
     while is_ws_connected:
         try:
+            logging.info("Pinging WebSocket server...")
             await websocket.ping()
             await asyncio.sleep(5)  # Non-blocking sleep
         except websockets.ConnectionClosedError:
-            print("WebSocket connection closed while pinging.")
+            logging.error("WebSocket connection closed while pinging.")
             is_ws_connected = False
         except Exception as e:
-            print(f"Error pinging WebSocket server: {e}")
+            logging.error(f"Error pinging WebSocket server: {e}")
             is_ws_connected = False
 
 
@@ -227,7 +223,6 @@ async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol
     global tcp_socket, is_ws_connected
     try:
         async for message in websocket:
-            # print(f"Received from WebSocket server: {message}")
             message_to_be_sent = get_message_to_be_sent_to_tcp(message)
             if message_to_be_sent is not None:
                 send_message_to_tcp(message_to_be_sent)
@@ -235,7 +230,7 @@ async def websocket_client_receive(websocket: websockets.WebSocketClientProtocol
                 await handle_feed_command(websocket)
 
     except Exception as e:
-        print(f"WebSocket client receive error: {e}")
+        logging.error(f"WebSocket client receive error: {e}")
     finally:
         await websocket.close()
         is_ws_connected = False
@@ -247,7 +242,7 @@ async def send_message_to_websocket(websocket: websockets.WebSocketClientProtoco
         await websocket.send(json.dumps(message))
     except Exception as e:
         is_ws_connected = False
-        print(f"Error sending message to WebSocket server: {e}")
+        logging.error(f"Error sending message to WebSocket server: {e}")
 
 
 def get_message_to_be_sent_to_tcp(message_from_websocket: str) -> str | None:
@@ -313,9 +308,10 @@ def get_message_to_be_sent_to_websocket(message_from_tcp: str) -> dict | None:
 async def start_websocket_client():
     global tcp_socket, is_ws_connected
     while True:
+        ping_task = None
         try:
             async with websockets.connect(WS_URL) as websocket:
-                print("Successfully connected to WebSocket server.")
+                logging.info("Successfully connected to WebSocket server.")
                 is_ws_connected = True
                 ping_task = asyncio.create_task(ping_ws_server(websocket))
                 tcp_socket = start_tcp_client(websocket)
@@ -324,9 +320,10 @@ async def start_websocket_client():
                 else:
                     await handle_tcp_disconnection(websocket)
         except Exception as e:
-            print(f"Error connecting to WebSocket server: {e}")
+            logging.error(f"Error connecting to WebSocket server: {e}")
             is_ws_connected = False
-        await ping_task
+        if ping_task:
+            await ping_task
         await asyncio.sleep(TIMEOUT)
 
 
