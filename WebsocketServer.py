@@ -8,30 +8,12 @@ import pytz  # Import pytz for timezone handling
 CLIENTS = set()
 messages = asyncio.Queue()
 
-# Set IST timezone
-IST = pytz.timezone('Asia/Kolkata')
-
-
-class ISTFormatter(logging.Formatter):
-    def formatTime(self, record, datefmt=None):
-        dt = datetime.fromtimestamp(record.created, tz=IST)
-        if datefmt:
-            s = dt.strftime(datefmt)
-        else:
-            s = dt.isoformat()
-        return s
-
-
 # Configure logging with IST timezone
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
     level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
-
-# Update the logging formatter to use IST
-for handler in logging.root.handlers:
-    handler.setFormatter(ISTFormatter(handler.formatter._fmt, handler.formatter.datefmt))
 
 
 # Function to handle individual client connection
@@ -57,18 +39,34 @@ async def handler(websocket):
 async def broadcast(message):
     start_time = time.time()  # Start time
     logging.info(f"Broadcasting to {len(CLIENTS)} clients")
+
+    # Create a list of tasks for sending messages
+    broadcast_tasks = []
     for websocket in CLIENTS.copy():
-        try:
-            if message.get("sender") != websocket:
-                await websocket.send(message.get("message"))
-        except websockets.ConnectionClosed:
-            logging.warning(f"Failed to send message to {websocket.remote_address}: Connection closed")
-        except Exception as e:
-            logging.error(f"Failed to send message to {websocket.remote_address}: {str(e)}")
+        if message.get("sender") != websocket:
+            broadcast_tasks.append(send_message(websocket, message.get("message")))
+
+    # Run tasks concurrently, handle errors without blocking other clients
+    results = await asyncio.gather(*broadcast_tasks, return_exceptions=True)
+
+    # Log any errors encountered while broadcasting
+    for websocket, result in zip(CLIENTS.copy(), results):
+        if isinstance(result, Exception):
+            logging.error(f"Failed to send message to {websocket.remote_address}: {str(result)}")
 
     end_time = time.time()  # End time
     total_time = end_time - start_time
     logging.info(f"Time taken to broadcast message: {total_time:.4f} seconds")
+
+
+# Helper function to send message to a single client
+async def send_message(websocket, message):
+    try:
+        await websocket.send(message)
+    except websockets.ConnectionClosed:
+        logging.warning(f"Failed to send message to {websocket.remote_address}: Connection closed")
+    except Exception as e:
+        logging.error(f"Failed to send message to {websocket.remote_address}: {str(e)}")
 
 
 # Function to process messages from the queue and broadcast them
