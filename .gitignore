@@ -133,3 +133,4 @@ test.py
 *.jpg
 *.png
 *.avi
+.vscode/launch.json
