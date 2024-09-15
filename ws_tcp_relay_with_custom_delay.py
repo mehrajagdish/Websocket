@@ -76,7 +76,7 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
                                                              loop)
                         last_trigger_time = time.time()
                     else:
-                        logging.info("Skipping event, time difference: ", time.time() - last_trigger_time)
+                       logging.info(f"Skipping event, time difference: {time.time() - last_trigger_time}")
                 else:
                     message_to_be_sent = get_message_to_be_sent_to_websocket(message)
                     if message_to_be_sent:
