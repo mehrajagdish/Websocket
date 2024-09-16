@@ -134,3 +134,4 @@ test.py
 *.png
 *.avi
 .vscode/launch.json
+/newvenv/
