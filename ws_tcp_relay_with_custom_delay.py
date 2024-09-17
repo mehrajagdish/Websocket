@@ -76,7 +76,7 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
                                                              loop)
                         last_trigger_time = time.time()
                     else:
-                       logging.info(f"Skipping event, time difference: {time.time() - last_trigger_time}")
+                        logging.info(f"Skipping event, time difference: {time.time() - last_trigger_time}")
                 else:
                     message_to_be_sent = get_message_to_be_sent_to_websocket(message)
                     if message_to_be_sent:
@@ -87,7 +87,7 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
                     break
 
                 if not ping_tcp_client() and not trying_to_reconnect:
-                    tcp_socket = handle_tcp_disconnection(websocket, tcp_socket, loop)
+                    tcp_socket = handle_tcp_disconnection(websocket, loop)
             except socket.error as e:
                 logging.error(f"TCP socket error: {e}")
                 break
@@ -99,12 +99,12 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
             tcp_socket.close()
             tcp_socket = None
         if is_ws_connected and not trying_to_reconnect:
-            tcp_socket = handle_tcp_disconnection(websocket, tcp_socket, loop)
+            tcp_socket = handle_tcp_disconnection(websocket, loop)
 
 
-def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol, tcp_socket: socket.socket, loop: AbstractEventLoop):
+def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol, loop: AbstractEventLoop):
     logging.info("Attempting to reconnect to TCP server...")
-    global trying_to_reconnect
+    global trying_to_reconnect, tcp_socket
     if trying_to_reconnect:
         return tcp_socket
     trying_to_reconnect = True
@@ -112,6 +112,7 @@ def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol, tcp_
         try:
             tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            tcp_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             tcp_socket.settimeout(TIMEOUT)
             tcp_socket.connect((TCP_IP, TCP_PORT))
             logging.info("Successfully reconnected to TCP server.")
@@ -165,7 +166,8 @@ def ping_tcp_client() -> bool:
         ping_tcp_socket.connect((TCP_IP, TCP_PORT))
         ping_tcp_socket.close()
         return True
-    except socket.error:
+    except socket.error as e:
+        logging.error(e)
         return False
 
 
@@ -210,7 +212,7 @@ async def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
             await websocket.ping()
             # logging.info("pinged.")
             await asyncio.sleep(5)  # Non-blocking sleep
-            
+
         except websockets.ConnectionClosedError:
             logging.error("WebSocket connection closed while pinging.")
             is_ws_connected = False
@@ -310,18 +312,17 @@ async def start_websocket_client():
     while True:
         ping_task = None
         ws_task = None
-        tcp_dis_task = None
         try:
             async with websockets.connect(WS_URL) as websocket:
                 loop = asyncio.get_running_loop()
                 logging.info("Successfully connected to WebSocket server.")
                 is_ws_connected = True
                 ping_task = asyncio.create_task(ping_ws_server(websocket))
-                tcp_socket = await asyncio.to_thread(start_tcp_client,websocket, loop)
+                tcp_socket = await asyncio.to_thread(start_tcp_client, websocket, loop)
                 if tcp_socket:
                     ws_task = asyncio.create_task(websocket_client_receive(websocket))
                 else:
-                    tcp_socket = await asyncio.to_thread(handle_tcp_disconnection, websocket, tcp_socket, loop)
+                    tcp_socket = await asyncio.to_thread(handle_tcp_disconnection, websocket, loop)
                 if ws_task:
                     await ws_task
         except Exception as e:
@@ -331,8 +332,6 @@ async def start_websocket_client():
             ping_task.cancel()
         if ws_task:
             ws_task.cancel()
-        if tcp_dis_task:
-            tcp_dis_task.cancel()
         await asyncio.sleep(TIMEOUT)
 
 
