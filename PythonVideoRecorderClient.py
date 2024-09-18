@@ -52,7 +52,7 @@ async def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
     global is_ws_connected
     while is_ws_connected:
         try:
-            logging.info("Pinging WebSocket server...")
+            # logging.info("Pinging WebSocket server...")
             await websocket.ping()
             await asyncio.sleep(5)  # Non-blocking sleep
         except ConnectionClosedError:
