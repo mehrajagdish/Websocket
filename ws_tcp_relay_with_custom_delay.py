@@ -329,6 +329,7 @@ async def start_websocket_client():
             logging.error(f"Error connecting to WebSocket server: {e}")
             is_ws_connected = False
         if ping_task:
+            await ping_task
             ping_task.cancel()
         if ws_task:
             ws_task.cancel()
