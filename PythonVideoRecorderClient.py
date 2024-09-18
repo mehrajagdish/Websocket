@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import threading
 import time
@@ -32,6 +33,11 @@ VIDEO_LENGTH = config["videoLength"]
 lastEvent = {}
 is_ws_connected = False
 
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
+
 
 async def getVideoRecordedEvent(forBay):
     bayInfo = BayInfo(isForAllBays=False, bayId=forBay)
@@ -46,16 +52,15 @@ async def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
     global is_ws_connected
     while is_ws_connected:
         try:
+            logging.info("Pinging WebSocket server...")
             await websocket.ping()
             await asyncio.sleep(5)  # Non-blocking sleep
         except ConnectionClosedError:
-            print("WebSocket connection closed while pinging.")
+            logging.error("WebSocket connection closed while pinging.")
             is_ws_connected = False
-            break
         except Exception as e:
-            print(f"Error pinging WebSocket server: {e}")
+            logging.error(f"Error pinging WebSocket server: {e}")
             is_ws_connected = False
-            break
 
 
 async def handleMessage(message, websocket):
@@ -70,8 +75,8 @@ async def handleMessage(message, websocket):
 
         if eventInfo.header.eventName in lastEvent:
             if time.time() - lastEvent[eventInfo.header.eventName] < TIME_INTERVAL_BETWEEN_EVENTS:
-                print("Skipping event", eventInfo.header.eventName)
-                print("Time Difference: ", time.time() - lastEvent[eventInfo.header.eventName])
+                logging.info("Skipping event", eventInfo.header.eventName)
+                logging.info("Time Difference: ", time.time() - lastEvent[eventInfo.header.eventName])
                 return
 
         lastEvent[eventInfo.header.eventName] = time.time()
@@ -112,7 +117,7 @@ async def client():
     while True:
         try:
             async with websockets.connect(WS_URI) as websocket:
-                print(f"Connected to websocket at {WS_URI}")
+                logging.info(f"Connected to websocket at {WS_URI}")
 
                 is_ws_connected = True
                 # Start ping_ws_server as a background task
@@ -121,34 +126,42 @@ async def client():
                 try:
                     while True:
                         message = await websocket.recv()
-                        await handleMessage(message, websocket)
+                        handle_message_task = await asyncio.to_thread(handleMessage, message, websocket)
+                        await handle_message_task
+                        handle_message_task.close()
                 except ConnectionClosedError:
-                    print("Connection closed, attempting to reconnect...")
+                    is_ws_connected = False
+                    raise
                 except json.decoder.JSONDecodeError as e:
-                    print(f"Invalid JSON: {e}")
+                    logging.error(f"Invalid JSON: {e}")
                 except asyncio.CancelledError:
                     raise
                 except Exception as e:
-                    print(f"Error: {e}")
+                    logging.error(f"Error: {e}")
 
                 # Wait for the ping task to finish if the WebSocket connection closes
-                # ping_task.cancel()
                 await ping_task
+                ping_task.cancel()
 
         except ConnectionError as e:
-            print(f"Connection Error: {e}")
+            logging.error(f"Connection Error: {e}")
             is_ws_connected = False
-            print("Reconnecting to WebSocket server in 5 seconds...")
+            logging.info("Reconnecting to WebSocket server in 5 seconds...")
+        except ConnectionClosedError as e:
+            logging.error(f"Connection closed: {e}")
+            is_ws_connected = False
+            logging.info("Reconnecting to WebSocket server in 5 seconds...")
         except asyncio.CancelledError:
-            print("Client task was cancelled")
+            logging.error("Client task was cancelled")
             break
         except KeyboardInterrupt:
-            print("KeyboardInterrupt detected, closing the client.")
+            logging.error("KeyboardInterrupt detected, closing the client.")
+            is_ws_connected = False
             break
         except Exception as e:
-            print(f"Error: {e}")
+            logging.error(f"Error: {e}")
             is_ws_connected = False
-            print("Reconnecting to WebSocket server in 5 seconds...")
+            logging.info("Reconnecting to WebSocket server in 5 seconds...")
 
         await asyncio.sleep(5)
 
@@ -157,13 +170,13 @@ async def main():
     try:
         await client()
     except asyncio.CancelledError:
-        print("Main task was cancelled")
+        logging.info("Main task was cancelled")
     finally:
-        print("Shutting down gracefully...")
+        logging.info("Shutting down gracefully...")
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Process interrupted by user, exiting.")
+        logging.info("Process interrupted by user, exiting.")
