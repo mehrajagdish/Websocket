@@ -106,7 +106,7 @@ def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol, loop
     logging.info("Attempting to reconnect to TCP server...")
     global trying_to_reconnect, tcp_socket
     if trying_to_reconnect:
-        return tcp_socket
+        return None
     trying_to_reconnect = True
     while True:
         try:
