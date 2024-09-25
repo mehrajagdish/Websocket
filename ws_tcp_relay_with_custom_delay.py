@@ -87,7 +87,8 @@ def tcp_client_receive(websocket: websockets.WebSocketClientProtocol, loop: Abst
                     break
 
                 if not ping_tcp_client() and not trying_to_reconnect:
-                    tcp_socket = handle_tcp_disconnection(websocket, loop)
+                    logging.error("TCP connection closed by server.")
+                    break
             except socket.error as e:
                 logging.error(f"TCP socket error: {e}")
                 break
@@ -116,8 +117,8 @@ def handle_tcp_disconnection(websocket: websockets.WebSocketClientProtocol, loop
             tcp_socket.settimeout(TIMEOUT)
             tcp_socket.connect((TCP_IP, TCP_PORT))
             logging.info("Successfully reconnected to TCP server.")
-            trying_to_reconnect = False
             threading.Thread(target=tcp_client_receive, args=(websocket, loop)).start()
+            trying_to_reconnect = False
             return tcp_socket
         except Exception as e:
             logging.error(f"Reconnection attempt failed: {e}")
