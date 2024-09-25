@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-import threading
 import time
 
 import websockets
@@ -75,8 +74,8 @@ async def handleMessage(message, websocket):
 
         if eventInfo.header.eventName in lastEvent:
             if time.time() - lastEvent[eventInfo.header.eventName] < TIME_INTERVAL_BETWEEN_EVENTS:
-                logging.info("Skipping event", eventInfo.header.eventName)
-                logging.info("Time Difference: ", time.time() - lastEvent[eventInfo.header.eventName])
+                logging.info("Skipping event: " + eventInfo.header.eventName)
+                logging.info("Time Difference: " + str(time.time() - lastEvent[eventInfo.header.eventName]))
                 return
 
         lastEvent[eventInfo.header.eventName] = time.time()
