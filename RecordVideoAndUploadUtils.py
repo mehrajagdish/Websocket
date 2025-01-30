@@ -108,13 +108,11 @@ def getCurrentVideoUrl(videoPath, videoName, score):
     try:
         merge_videos(videoPath + "/" + videoName, ANIMATIONS_DIR_PATH + "/" + str(score) + ".mp4", temp_video_path)
         video_url = uploadVideo(videoPath + "/temp.mp4", "temp.mp4")
+        deleteFile(temp_video_path)
         return video_url
     except Exception as e:
         print(e)
         return None
-    finally:
-        deleteFile(temp_video_path)
-
 
 def copyAndPasteVideo(src, dst):
     shutil.copy(src, dst)

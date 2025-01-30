@@ -15,6 +15,9 @@ class Events(enum.Enum):
     BOWLING_MACHINE_STATUS = "bowlingMachineStatus"
     SET_BOWLING_MACHINE_PARAMETERS = "setBowlingMachineParameters"
     FEED_BOWLING_MACHINE = "feedBowlingMachine"
+    START_PLAYING = "startPlaying"
+    STOP_PLAYING = "stopPlaying"
+    BAY_SHIFTED = "bayShifted"
 
 
 class Devices(enum.Enum):
@@ -24,6 +27,7 @@ class Devices(enum.Enum):
     UNITY = "unity"
     RECORDER = "recorder"
     BOWLING_MACHINE = "bowlingMachine"
+    BACKEND_SERVER = "backendServer"
 
 
 class GameMode(enum.Enum):
