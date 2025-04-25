@@ -63,6 +63,12 @@ async def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
 
 
 async def handleMessage(message, websocket):
+    try:
+        messageDict = json.loads(message)
+        if messageDict["header"]["eventName"] == Events.BAY_SHIFTED.value:
+            return
+    except json.decoder.JSONDecodeError:
+        logging.error("Invalid JSON format")
     eventInfo = getEventInfoObject(message)
     eventInfoDict = getEventInfoDict(message)
 
