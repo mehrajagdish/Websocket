@@ -15,6 +15,7 @@ class Events(enum.Enum):
     BOWLING_MACHINE_STATUS = "bowlingMachineStatus"
     SET_BOWLING_MACHINE_PARAMETERS = "setBowlingMachineParameters"
     FEED_BOWLING_MACHINE = "feedBowlingMachine"
+    BAY_SHIFTED = "bayShifted"
 
 
 class Devices(enum.Enum):

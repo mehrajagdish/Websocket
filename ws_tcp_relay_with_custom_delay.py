@@ -173,6 +173,13 @@ def ping_tcp_client() -> bool:
 
 
 def feed_command_received_from_websocket(message_from_websocket) -> bool:
+    try:
+        messageDict = json.loads(message_from_websocket)
+        if messageDict["header"]["eventName"] == Events.BAY_SHIFTED.value:
+            return False
+    except json.decoder.JSONDecodeError:
+        logging.error("Invalid JSON format")
+
     eventInfo = getEventInfoObject(message_from_websocket)
 
     if not eventInfo.header.bayInfo.isForAllBays and eventInfo.header.bayInfo.bayId != bayId:
@@ -249,6 +256,13 @@ async def send_message_to_websocket(websocket: websockets.WebSocketClientProtoco
 
 
 def get_message_to_be_sent_to_tcp(message_from_websocket: str) -> str | None:
+    try:
+        messageDict = json.loads(message_from_websocket)
+        if messageDict["header"]["eventName"] == Events.BAY_SHIFTED.value:
+            return None
+    except json.decoder.JSONDecodeError:
+        logging.error("Invalid JSON format")
+
     eventInfo = getEventInfoObject(message_from_websocket)
 
     if not eventInfo.header.bayInfo.isForAllBays and eventInfo.header.bayInfo.bayId != bayId:
