@@ -3,6 +3,7 @@ import websockets
 import subprocess
 import json
 import sys
+import psutil
 
 from EventEnums import Devices, Events
 from EventInfo import getEventInfoObject
@@ -13,12 +14,20 @@ with open(CONFIG_PATH) as fp:
 
 bayId = config["bayId"]
 WS_URL = config["websocketServerURI"]
-
-# Path to your batch file
 BATCH_FILE_PATH = config["batchFilePath"]
 
-# Global to hold the subprocess.Popen object for the started application
 app_process = None
+
+
+def kill_process_tree(pid):
+    """Kills a process and all of its children."""
+    try:
+        parent = psutil.Process(pid)
+        for child in parent.children(recursive=True):
+            child.kill()
+        parent.kill()
+    except psutil.NoSuchProcess:
+        pass
 
 
 async def listen():
@@ -27,32 +36,26 @@ async def listen():
         print("Connected to WebSocket server.")
         async for message in websocket:
             eventInfo = getEventInfoObject(message)
+
             if not eventInfo.header.bayInfo.isForAllBays and eventInfo.header.bayInfo.bayId != bayId:
-                return None
+                continue
+
             if Devices.ANIMATION_APP_HANDLER.value in eventInfo.header.sentTo:
                 if Events.START_APPLICATION.value == eventInfo.header.eventName:
                     if app_process is None:
                         print("Starting application via batch file...")
-                        # Start the batch file and keep the handle
-                        # Using shell=True to run batch file, capture the process
-                        app_process = subprocess.Popen([BATCH_FILE_PATH], shell=True)
+                        app_process = subprocess.Popen(BATCH_FILE_PATH, shell=True)
                         print(f"Application started with PID {app_process.pid}")
+
                 elif Events.CLOSE_APPLICATION.value == eventInfo.header.eventName:
                     print("Closing application and exiting...")
                     if app_process:
-                        # Terminate the process
-                        app_process.terminate()
-                        try:
-                            app_process.wait(timeout=5)
-                            print("Application closed gracefully.")
-                        except subprocess.TimeoutExpired:
-                            print("Force killing the application.")
-                            app_process.kill()
+                        kill_process_tree(app_process.pid)
+                        app_process.wait()
+                        print("Application and batch file terminated.")
                         app_process = None
                     else:
                         print("No application running.")
-                    # Exit script
-                    sys.exit(0)
 
 
 async def main():
@@ -69,5 +72,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print("Script interrupted by user.")
-        if app_process is not None:
-            app_process.terminate()
+        if app_process:
+            kill_process_tree(app_process.pid)

@@ -1,1 +1,2 @@
 websockets==11.0.3
+psutil~=7.0.0
