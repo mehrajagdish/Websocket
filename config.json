@@ -1,5 +1,5 @@
 {
   "bayId": "001",
-  "websocketServerURI": "ws://172.16.0.43:3000",
-  "batchFilePath": "C:/Six2o/Unity/Six2ov0.2.2/run.bat"
+  "websocketServerURI": "ws://172.16.0.44:3000",
+  "batchFilePath": "D:/virtueanalytics/projects/Six2O/build/Six2ov0.2.2/run.bat"
 }

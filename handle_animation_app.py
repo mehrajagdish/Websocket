@@ -15,7 +15,7 @@ bayId = config["bayId"]
 WS_URL = config["websocketServerURI"]
 
 # Path to your batch file
-BATCH_FILE_PATH = config["websocketServerURI"]
+BATCH_FILE_PATH = config["batchFilePath"]
 
 # Global to hold the subprocess.Popen object for the started application
 app_process = None
@@ -26,7 +26,6 @@ async def listen():
     async with websockets.connect(WS_URL) as websocket:
         print("Connected to WebSocket server.")
         async for message in websocket:
-            print(f"Received message: {message}")
             eventInfo = getEventInfoObject(message)
             if not eventInfo.header.bayInfo.isForAllBays and eventInfo.header.bayInfo.bayId != bayId:
                 return None
