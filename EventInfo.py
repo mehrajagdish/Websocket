@@ -1,4 +1,5 @@
 import json
+import keyword
 from collections import namedtuple
 
 
@@ -28,7 +29,14 @@ class EventInfo:
 
 
 def customEventInfoDecoder(eventInfoDict):
-    return namedtuple('X', eventInfoDict.keys())(*eventInfoDict.values())
+    renamed_dict = {}
+    for key, value in eventInfoDict.items():
+        # Rename reserved keywords like 'from', 'class', 'def' etc.
+        if keyword.iskeyword(key):
+            renamed_dict[key + '_value'] = value
+        else:
+            renamed_dict[key] = value
+    return namedtuple('X', renamed_dict.keys())(*renamed_dict.values())
 
 
 def getEventInfoObject(eventInfoJson):
