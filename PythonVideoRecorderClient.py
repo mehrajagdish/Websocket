@@ -64,6 +64,9 @@ async def ping_ws_server(websocket: websockets.WebSocketClientProtocol):
 
 async def handleMessage(message, websocket):
     try:
+        message = message.strip()
+        if not message:
+            return
         messageDict = json.loads(message)
         if messageDict["header"]["eventName"] == Events.BAY_SHIFTED.value:
             return
