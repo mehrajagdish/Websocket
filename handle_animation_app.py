@@ -54,6 +54,9 @@ async def listen():
             print("[INFO] Connected to WebSocket server.")
             async for message in websocket:
                 try:
+                    message = message.strip()
+                    if not message:
+                        continue
                     eventInfo = getEventInfoObject(message)
                 except Exception as e:
                     print(f"[ERROR] Failed to parse event: {e}")
